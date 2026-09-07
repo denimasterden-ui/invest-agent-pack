@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "empty_head_comps",
+      "measure": "levered",
+      "segments": [],
+      "comps": [],
+      "materials": [{"for_measure": "levered"}],
+      "expected": "refusal"
+    },
+    {
+      "id": "sotp_segment_without_comps",
+      "measure": "sotp",
+      "segments": [{"name": "core"}, {"name": "cloud"}],
+      "comps": [{"name": "CoreCo", "segment": "core", "kind": "public"}],
+      "materials": [{"for_measure": "sotp"}],
+      "expected": "refusal"
+    },
+    {
+      "id": "sotp_private_comp_coverage",
+      "measure": "sotp",
+      "segments": [{"name": "core"}, {"name": "robotics"}],
+      "comps": [
+        {"name": "CoreCo", "segment": "core", "kind": "public"},
+        {"name": "VentureCo", "segment": "robotics", "kind": "private", "valuation_ref": "Series D"}
+      ],
+      "materials": [{"for_measure": "sotp"}],
+      "expected": "calculated"
+    },
+    {
+      "id": "measure_changed_without_new_material",
+      "measure": "ev_revenue",
+      "segments": [],
+      "comps": ["IREN"],
+      "materials": [{"for_measure": "levered"}],
+      "expected": "refusal"
+    },
+    {
+      "id": "all_required_nodes",
+      "measure": "levered",
+      "segments": [],
+      "comps": ["HPE"],
+      "materials": [{"for_measure": "levered"}],
+      "expected": "calculated"
+    },
+    {
+      "id": "single_segment_head_comps_and_material",
+      "measure": "levered",
+      "segments": [{"name": "hardware"}],
+      "comps": ["HPE"],
+      "materials": [{"for_measure": "levered"}],
+      "expected": "calculated"
+    }
+  ]
+}

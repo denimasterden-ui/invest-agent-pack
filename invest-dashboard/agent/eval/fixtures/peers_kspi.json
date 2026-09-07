@@ -1,0 +1,32 @@
+{
+  "ITUB": {
+    "priceToBook": 1.82,
+    "returnOnEquity": 0.18,
+    "currency": "USD",
+    "financialCurrency": "BRL"
+  },
+  "HDB": {
+    "priceToBook": 3.45,
+    "returnOnEquity": 0.155,
+    "currency": "USD",
+    "financialCurrency": "INR"
+  },
+  "GGAL": {
+    "priceToBook": 2.91,
+    "returnOnEquity": 0.21,
+    "currency": "USD",
+    "financialCurrency": "ARS"
+  },
+  "KB": {
+    "priceToBook": 0.58,
+    "returnOnEquity": 0.072,
+    "currency": "USD",
+    "financialCurrency": "KRW"
+  },
+  "KSPI": {
+    "priceToBook": 7.09,
+    "returnOnEquity": 0.40,
+    "currency": "USD",
+    "financialCurrency": "KZT"
+  }
+}

@@ -1,0 +1,67 @@
+```json
+{
+  "forks": [
+    {
+      "label": "bull",
+      "thesis": "снижение депозитной ставки с ноября 2026 разворачивает маржу, и выплата вперёд растёт — рынок платит за дивиденд, а не за поток, которого у банка нет",
+      "channel": "дивиденд",
+      "channel_reason": "тезис меняет объявленную выплату: для банка канал дивиденд меряет то, что движет ценой, а поток не определён",
+      "horizon_months": 18,
+      "must_be_true": [
+        "ставка по вкладам в тенге в отчёте за 4кв26 ниже 14%",
+        "объявленная выплата за 1кв27 выше 4400 KZT на акцию"
+      ],
+      "overrides": {
+        "dps_forward": {
+          "value": 4600.0,
+          "rationale": "выплата вперёд растёт вместе с маржой фондирования",
+          "anchor_class": "company_guide",
+          "confirms": "driver",
+          "source": "Kaspi.kz: снижение ставки по вкладам с ноября 2026, отчёт за 2К26"
+        },
+        "required_yield": {
+          "value": 0.06,
+          "rationale": "требуемая дивдоходность по собственной истории бумаги",
+          "anchor_class": "own_history",
+          "confirms": "number",
+          "source": "дивдоходность KSPI за 2024–2026: 5.8–6.4%"
+        }
+      }
+    },
+    {
+      "label": "bear",
+      "thesis": "маржа фондирования не разворачивается, прибыль на акцию вперёд ниже рынка",
+      "channel": "прибыль",
+      "channel_reason": "тезис про прибыль на акцию и мультипликатор, по которому её оценивает рынок",
+      "horizon_months": 12,
+      "must_be_true": [
+        "прибыль за 4кв26 ниже прибыли за 4кв25",
+        "чистая процентная маржа не выросла"
+      ],
+      "overrides": {
+        "eps_forward": {
+          "value": 4800.0,
+          "rationale": "прибыль на акцию вперёд ниже объявленной базы",
+          "anchor_class": "analyst_judgement",
+          "confirms": "estimate",
+          "source": ""
+        },
+        "pe_low": {
+          "value": 4.0,
+          "rationale": "нижняя граница полосы",
+          "anchor_class": "analyst_judgement",
+          "confirms": "estimate",
+          "source": ""
+        },
+        "pe_high": {
+          "value": 6.0,
+          "rationale": "верхняя граница полосы",
+          "anchor_class": "analyst_judgement",
+          "confirms": "estimate",
+          "source": ""
+        }
+      }
+    }
+  ]
+}
+```

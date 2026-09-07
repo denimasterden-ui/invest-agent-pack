@@ -1,0 +1,11 @@
+# invest-agent v2 — зависимости (Python 3.12)
+# Ядро скиллов: факты/peers (yfinance), центральный канон (mcp), опционы entry-timing (py_vollib).
+yfinance>=0.2.40
+mcp>=1.0
+py_vollib>=1.0.12
+# transitive, но фиксируем явно (yfinance/py_vollib тянут):
+pandas>=2.0
+requests>=2.31
+# human-source .mhtml → текст+картинки (knowledge/_mhtml_to_text, kernel/mhtml):
+beautifulsoup4>=4.11
+lxml>=4.9

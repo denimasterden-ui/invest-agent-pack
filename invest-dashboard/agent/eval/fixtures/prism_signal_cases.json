@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "hyper_growth",
+      "ticker": "CRDO",
+      "profile": {"research_type": "ai_infra", "has_stakes": false},
+      "facts": {
+        "cash_flow": {
+          "operating_cash_flow": [100, 130, 180],
+          "capital_expenditure": [60, 70, 80],
+          "stock_based_compensation": [30, 45, 60]
+        },
+        "net_income": [70, 85, 100],
+        "net_debt": -25
+      },
+      "expected": {
+        "fcf_sign": 1,
+        "fcf_stable": true,
+        "sbc_ratio": 0.6,
+        "net_cash_sign": 1,
+        "has_stakes": false,
+        "research_type": "ai_infra"
+      }
+    },
+    {
+      "id": "cyclical",
+      "ticker": "MU",
+      "profile": {"research_type": "ai_infra", "has_stakes": false},
+      "facts": {
+        "cash_flow": {
+          "operating_cash_flow": [100, 40, 110],
+          "capital_expenditure": [50, 70, 60]
+        },
+        "net_income": [40, -20, 35],
+        "net_debt": 10
+      },
+      "expected": {
+        "fcf_sign": 1,
+        "fcf_stable": false,
+        "sbc_ratio": null,
+        "net_cash_sign": -1,
+        "has_stakes": false,
+        "research_type": "ai_infra"
+      }
+    }
+  ]
+}

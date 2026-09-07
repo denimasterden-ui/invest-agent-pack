@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "LULU-2026-Q2-stale-without-material",
+      "ticker": "LULU",
+      "measure": "levered",
+      "assumptions": {
+        "fcf_base": 1500,
+        "shares": 120,
+        "scenarios": {
+          "base": {
+            "growth_path": [0.08, 0.07, 0.06, 0.05, 0.04],
+            "discount_rate": 0.1,
+            "terminal_growth": 0.025
+          }
+        }
+      },
+      "price_context": {
+        "earnings_data_stale": true,
+        "most_recent_earnings_date": "2026-09-03"
+      },
+      "materials": [],
+      "expected": "refusal"
+    },
+    {
+      "id": "LULU-2026-Q2-stale-with-fresh-material",
+      "ticker": "LULU",
+      "measure": "levered",
+      "assumptions": {
+        "fcf_base": 1500,
+        "shares": 120,
+        "scenarios": {
+          "base": {
+            "growth_path": [0.08, 0.07, 0.06, 0.05, 0.04],
+            "discount_rate": 0.1,
+            "terminal_growth": 0.025
+          }
+        }
+      },
+      "price_context": {
+        "earnings_data_stale": true,
+        "most_recent_earnings_date": "2026-09-03"
+      },
+      "materials": [
+        {"created_at": "2026-09-03T12:00:00Z", "source_name": "LULU Q2 2026"}
+      ],
+      "expected": "calculated"
+    },
+    {
+      "id": "KSPI-bank-stale-without-material",
+      "ticker": "KSPI",
+      "measure": "ddm_ri",
+      "facts": {
+        "ticker": "KSPI",
+        "price": 105.55,
+        "price_currency": "USD",
+        "financial_currency": "KZT",
+        "fx": 0.0021820245310664177,
+        "shares": 190027266,
+        "shares_source": "отчёт Kaspi.kz за 2К26",
+        "net_income": 1073180000000,
+        "eps": 5647.51,
+        "book_value": 2827400000000,
+        "period_end": "2026-06-30",
+        "available_end": "2026-06-30",
+        "dps_declared": 3994.8,
+        "dps_declared_source": "отчёт Kaspi.kz за 2К26",
+        "dps_trailing": 2630.58,
+        "price_context": {
+          "earnings_data_stale": true,
+          "most_recent_earnings_date": "2026-09-03"
+        },
+        "source": "отчёт Kaspi.kz за 2К26"
+      },
+      "rate": 0.17,
+      "growth": 0.09,
+      "rate_why": "ставка ЦБ РК плюс премия за риск, KZT",
+      "growth_why": "инфляция Казахстана плюс реальный рост",
+      "materials": [],
+      "expected": "refusal"
+    },
+    {
+      "id": "LULU-fresh-price-context",
+      "ticker": "LULU",
+      "measure": "levered",
+      "assumptions": {
+        "fcf_base": 1500,
+        "shares": 120,
+        "scenarios": {
+          "base": {
+            "growth_path": [0.08, 0.07, 0.06, 0.05, 0.04],
+            "discount_rate": 0.1,
+            "terminal_growth": 0.025
+          }
+        }
+      },
+      "price_context": {
+        "earnings_data_stale": false,
+        "most_recent_earnings_date": "2026-09-03"
+      },
+      "materials": [],
+      "expected": "calculated"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "scope_cases": [
+    {
+      "id": "multi_segment_without_scope",
+      "segments": [{"name": "devices"}, {"name": "services"}],
+      "scope": {},
+      "expected": "refusal"
+    },
+    {
+      "id": "multi_segment_confirmed_scope",
+      "segments": [{"name": "devices"}, {"name": "services"}],
+      "scope": {
+        "measure": "levered",
+        "reason": "единый денежный поток отражает обе части",
+        "confirmed_by": "analyst"
+      },
+      "expected": "calculated"
+    },
+    {
+      "id": "single_segment_without_scope",
+      "segments": [{"name": "devices"}],
+      "scope": {},
+      "expected": "calculated"
+    }
+  ],
+  "coverage_cases": [
+    {
+      "id": "one_of_two_segments",
+      "segments": [
+        {"name": "devices", "business_kind": "computer hardware"},
+        {"name": "services", "business_kind": "enterprise services"}
+      ],
+      "search_results": {
+        "computer hardware": ["HPE"],
+        "enterprise services": []
+      },
+      "expected_comps_cover_segments": false,
+      "expected_note": "comps покрывают не все сегменты"
+    }
+  ]
+}

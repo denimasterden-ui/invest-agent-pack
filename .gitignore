@@ -1,0 +1,17 @@
+# venv / кэш
+__pycache__/
+*.pyc
+.venv/
+venv/
+# локальные данные и секреты (в пак НЕ входят)
+*.db
+.models.json
+.env
+*credentials*.json
+sinizza-*.json
+# временное
+/tmp/
+*.log
+.DS_Store
+# локальные прогоны
+invest-dashboard/agent-run/runs/

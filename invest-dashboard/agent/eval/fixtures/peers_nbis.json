@@ -1,0 +1,29 @@
+{
+  "IREN": {
+    "marketCap": 2500000000,
+    "totalDebt": 500000000,
+    "totalCash": 200000000,
+    "totalRevenue": 450000000,
+    "revenueGrowth": 0.35,
+    "currency": "USD",
+    "financialCurrency": "USD"
+  },
+  "CRWV": {
+    "marketCap": 18000000000,
+    "totalDebt": 3000000000,
+    "totalCash": 1000000000,
+    "totalRevenue": 2500000000,
+    "revenueGrowth": 0.28,
+    "currency": "USD",
+    "financialCurrency": "USD"
+  },
+  "NBIS": {
+    "marketCap": 35000000000,
+    "totalDebt": 2000000000,
+    "totalCash": 500000000,
+    "totalRevenue": 3000000000,
+    "revenueGrowth": 0.45,
+    "currency": "USD",
+    "financialCurrency": "USD"
+  }
+}

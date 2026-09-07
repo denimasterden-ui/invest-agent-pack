@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "convergence_threshold": 0.05,
+  "cases": [
+    {
+      "ticker": "KSPI",
+      "price": 105.55,
+      "price_currency": "USD",
+      "profile": {"measure": "ddm_ri", "business_kind": "банк / финансовая экосистема"},
+      "baseline": {
+        "facts": {"ticker": "KSPI", "price": 105.55, "price_currency": "USD", "financial_currency": "KZT", "fx": 0.0021820245310664177, "shares": 190027266, "shares_source": "отчёт Kaspi.kz за 2К26", "net_income": 1073180000000, "eps": 5647.51, "book_value": 2827400000000, "period_end": "2026-06-30", "available_end": "2026-06-30", "dps_declared": 3994.8, "dps_declared_source": "объявлено до 1кв27, отчёт за 2К26", "dps_trailing": 2630.58, "price_context": {"earnings_data_stale": false, "most_recent_earnings_date": "2026-06-30"}, "source": "отчёт Kaspi.kz за 2К26"},
+        "rate": 0.17, "growth": 0.09,
+        "rate_why": "ставка ЦБ РК плюс премия за риск, KZT",
+        "growth_why": "инфляция Казахстана плюс реальный рост",
+        "expected_corridor": [117.51, 118.77],
+        "expected_warning_codes": []
+      },
+      "fork_answer": {"forks": [{"label": "bull", "thesis": "снижение стоимости фондирования поднимает выплату", "channel": "дивиденд", "channel_reason": "тезис меняет объявленную выплату банка", "horizon_months": 18, "must_be_true": ["ставка по вкладам ниже 14%", "выплата выше 4400 KZT"], "overrides": {"dps_forward": {"value": 4600, "rationale": "эффект снижения ставки", "anchor_class": "company_guide", "confirms": "driver", "source": "отчёт Kaspi.kz за 2К26"}, "required_yield": {"value": 0.06, "rationale": "история бумаги", "anchor_class": "own_history", "confirms": "number", "source": "дивдоходность 2024–2026"}}}]},
+      "expected_fork": {"label": "bull", "corridor": [167.29, 167.29], "warning_count": 0},
+      "recheck": [{"status": "сработало", "fact": "ставка снижена до 13.5%"}, {"status": "перенесено", "fact": "выплата ожидается кварталом позже"}],
+      "expected_recheck": {"statuses": ["сработало", "перенесено"], "requires_decision": false, "deferred_months": 12}
+    },
+    {
+      "ticker": "NBIS", "price": 70, "price_currency": "USD",
+      "profile": {"measure": "sotp", "business_kind": "холдинг с отдельно оцениваемыми долями", "effective_kind": "аренда вычислительной мощности"},
+      "baseline": {"assumptions": {"core": {"revenue_base": 3000000000, "shares": 500000000, "net_cash": 1000000000, "scenarios": {"base": {"growth_path": [1, 0.6, 0.35, 0.22, 0.15], "discount_rate": 0.1, "terminal_fcf_margin": 0.25, "terminal_fcf_multiple": 20}}}, "stakes": [{"name": "ClickHouse", "ownership_pct": 0.28, "entity_valuation": {"base": 20000000000}}]}, "physical": {"revenue_per_mw": 3000000, "contracted_gw": 5, "build_rate_gw": 1}, "expected_corridor": [122.33, 130.03], "expected_warning_codes": ["capacity_total", "capacity_pace"]},
+      "fork_answer": {"forks": [{"label": "bear", "thesis": "ввод мощности ограничивает траекторию выручки", "channel": "поток", "channel_reason": "ограничение меняет траекторию core-выручки", "horizon_months": 12, "must_be_true": ["законтрактованная мощность остаётся 5 ГВт"], "overrides": {"growth_path": {"value": [0.7, 0.45, 0.25, 0.15, 0.1], "rationale": "рост следует вводу мощности", "anchor_class": "company_guide", "confirms": "driver", "source": "контракты на 5 ГВт"}}}]},
+      "expected_fork": {"label": "bear", "corridor": [83.38, 88.33], "warning_count": 0},
+      "recheck": [{"status": "сработало", "fact": "контракты по-прежнему ограничены 5 ГВт"}],
+      "expected_recheck": {"statuses": ["сработало"], "requires_decision": false, "deferred_months": 0}
+    },
+    {
+      "ticker": "DELL", "price": 479.81, "price_currency": "USD",
+      "profile": {"measure": "levered", "business_kind": "производитель железа с AI-сегментом"},
+      "baseline": {"assumptions": {"fcf_base": 140, "shares": 10, "scenarios": {"base": {"growth_path": [0.1, 0.1, 0.1, 0.1, 0.1], "discount_rate": 0.1, "terminal_growth": 0.02}}}, "physical": {"backlog": 10000000000, "delivery_cycle_years": 1, "segment_revenue_next_year": 9000000000}, "expected_corridor": [226.34, 275.27], "expected_warning_codes": []},
+      "peers_fixture": "peers_dell.json",
+      "expected_peer_band": [6.96, 12.81],
+      "fork_answer": {"forks": [{"label": "bull", "thesis": "AI backlog поднимает прибыль на акцию", "channel": "прибыль", "channel_reason": "тезис меняет forward EPS", "horizon_months": 12, "must_be_true": ["AI backlog не ниже 10 млрд USD"], "overrides": {"eps_forward": {"value": 19, "rationale": "маржа AI-сегмента", "anchor_class": "company_guide", "confirms": "driver", "source": "гайд DELL"}, "pe_low": {"value": 6.96, "rationale": "нижний peer", "anchor_class": "peer_stats", "confirms": "number", "source": "SMCI"}, "pe_high": {"value": 12.81, "rationale": "верхний peer", "anchor_class": "peer_stats", "confirms": "number", "source": "HPE"}}}]},
+      "expected_fork": {"label": "bull", "corridor": [132.24, 243.39], "warning_count": 1, "warning_contains": "bull-форк"},
+      "recheck": [{"status": "не сработало", "fact": "backlog снизился ниже 10 млрд USD"}],
+      "expected_recheck": {"statuses": ["не сработало"], "requires_decision": true, "deferred_months": 0}
+    },
+    {
+      "ticker": "MU", "price": 140, "price_currency": "USD",
+      "profile": {"measure": "levered", "business_kind": "циклический производитель памяти"},
+      "baseline": {"assumptions": {"fcf_base": 100, "shares": 10, "base_year": "FY2026 peak", "scenarios": {"base": {"growth_path": [0.05, 0.05, 0.05, 0.05, 0.05], "discount_rate": 0.1, "terminal_growth": 0.02}}}, "physical": {"cycle_position": "peak", "base_year": "FY2026 peak"}, "expected_corridor": [132.02, 159.83], "expected_warning_codes": ["cycle_peak_base"]},
+      "fork_answer": {"forks": [{"label": "bear", "thesis": "нормализация цены памяти снижает поток после пика", "channel": "поток", "channel_reason": "циклическая нормализация меняет траекторию FCF", "horizon_months": 24, "must_be_true": ["цены DRAM снижаются от пика"], "overrides": {"growth_path": {"value": [-0.15, -0.1, 0, 0.03, 0.03], "rationale": "нормализация цикла", "anchor_class": "own_history", "confirms": "driver", "source": "исторические циклы памяти"}}}]},
+      "expected_fork": {"label": "bear", "corridor": [86.43, 104.17], "warning_count": 0},
+      "recheck": [{"status": "пока не проверить", "fact": "следующий квартал ещё не опубликован"}],
+      "expected_recheck": {"statuses": ["пока не проверить"], "requires_decision": false, "deferred_months": 0}
+    }
+  ]
+}

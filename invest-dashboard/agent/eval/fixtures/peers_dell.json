@@ -1,0 +1,20 @@
+{
+  "HPE": {
+    "forwardPE": 12.81,
+    "forwardEps": 2.15,
+    "currency": "USD",
+    "financialCurrency": "USD"
+  },
+  "SMCI": {
+    "forwardPE": 6.96,
+    "forwardEps": 4.50,
+    "currency": "USD",
+    "financialCurrency": "USD"
+  },
+  "DELL": {
+    "forwardPE": 20.37,
+    "forwardEps": 8.90,
+    "currency": "USD",
+    "financialCurrency": "USD"
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "forks": [
+    {
+      "label": "bull",
+      "thesis": "AI-серверный backlog конвертируется в выручку быстрее цикла поставок: прибыль группы растёт, пока рынок оценивает её по мультипликаторам медленных сопоставимых",
+      "channel": "прибыль",
+      "channel_reason": "тезис меняет forward EPS, а не поток: рост приносит сегмент с другой маржой, и канал прибыли меряет именно это",
+      "horizon_months": 12,
+      "must_be_true": [
+        "backlog AI-сегмента в отчёте за 1кв27 не ниже 10 млрд USD",
+        "доля AI-сегмента в выручке выросла к 30% и выше"
+      ],
+      "overrides": {
+        "eps_forward": {
+          "value": 19.0,
+          "rationale": "прибыль на акцию вперёд растёт из-за AI-сегмента, а не повторяет прошлый год",
+          "anchor_class": "company_guide",
+          "confirms": "driver",
+          "source": "гайд DELL: рост AI-портфеля и его маржи"
+        },
+        "pe_low": {
+          "value": 6.96,
+          "rationale": "нижняя граница полосы сопоставимых",
+          "anchor_class": "peer_stats",
+          "confirms": "number",
+          "source": "SMCI forward P/E 6.96"
+        },
+        "pe_high": {
+          "value": 12.81,
+          "rationale": "верхняя граница полосы сопоставимых",
+          "anchor_class": "peer_stats",
+          "confirms": "number",
+          "source": "HPE forward P/E 12.81"
+        }
+      }
+    },
+    {
+      "label": "bear",
+      "thesis": "backlog не конвертируется: цикл поставок растягивается, рост группы падает до темпа рынка, а премия за риск исполнения остаётся",
+      "channel": "поток",
+      "channel_reason": "тезис меняет темп роста потока, а не мультипликатор: считаем тем же levered-DCF на переопределённой траектории",
+      "horizon_months": 12,
+      "must_be_true": [
+        "backlog AI-сегмента снизился в отчёте за 1кв27",
+        "поставки сдвинуты вправо больше чем на квартал"
+      ],
+      "overrides": {
+        "growth_path": {
+          "value": [0.03, 0.03, 0.03, 0.03, 0.03],
+          "rationale": "рост группы замедляется до темпа рынка без ускорения сегмента",
+          "anchor_class": "company_guide",
+          "confirms": "driver",
+          "source": "гайд DELL: рост выручки группы 3%"
+        },
+        "discount_rate": {
+          "value": 0.12,
+          "rationale": "премия за риск исполнения backlog",
+          "anchor_class": "analyst_judgement",
+          "confirms": "estimate",
+          "source": ""
+        },
+        "terminal_growth": {
+          "value": 0.02,
+          "rationale": "долгосрочный рост не меняется",
+          "anchor_class": "macro_guidance",
+          "confirms": "number",
+          "source": "долгосрочный ВВП США"
+        }
+      }
+    }
+  ]
+}
