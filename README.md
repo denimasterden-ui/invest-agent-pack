@@ -11,7 +11,9 @@
 
 - **`.claude/skills/`** — скиллы:
   - `investagent-run` — прогон бумаги (профиль → призмы → Base → форки);
-  - `investagent-show` — витрина канона (что накоплено, read-only);
+  - `investagent-show` — витрина канона (read-only): `show ТИКЕР` кратко,
+    `--detail` полная раскладка (допущения Base, тезисы/условия форков, сверка
+    материала), `--explain` — плюс инвест-вывод Claude (сигнал/дрейф/что следить);
   - `ask-denis` — гид по методу и маршрутизация;
   - `entry-timing` — тайминг входа (техника/объём/опционы vs 3 сценария);
   - `preipo-valuation` — оценка частной (pre-IPO) компании;
@@ -20,7 +22,7 @@
   `ddm_ri`), гейты полноты (свежесть, охват, контракт меры, **призмы**), форки,
   якоря. С эвалами (`agent/run_evals.py`).
 - **`invest-dashboard/agent-run/`** — операторские обёртки (`ia`, collect_facts,
-  collect_peers, gen_forks).
+  collect_peers).
 - **`invest-dashboard/knowledge/classifiers/book_prisms.md`** — 12 книжных призм
   (Graham, Fisher, Greenblatt, Marathon, Quality Investing…), из которых
   осознанно выбирается мера.
