@@ -25,8 +25,9 @@ try:
 except Exception:
     options_data = None
 
-# Макро-«светофоры»: широкий рынок, tech, сектор полупроводников, страх
-MACRO = {"^GSPC": "S&P 500", "^IXIC": "Nasdaq Comp", "^SOX": "PHLX Semis", "^VIX": "VIX"}
+# Макро-«светофоры»: широкий рынок, tech, сектор полупроводников.
+# VIX/SKEW/VVIX/F&G — в отдельном сентимент-блоке (_fmt_sentiment), с перцентилем.
+MACRO = {"^GSPC": "S&P 500", "^IXIC": "Nasdaq Comp", "^SOX": "PHLX Semis"}
 
 
 def _tech(symbol: str) -> dict:
@@ -63,6 +64,69 @@ def _fmt_tech(name: str, t: dict) -> str:
     return (f"  {name}: {p(t['last'])} | vs50DMA {p(d50,'%')} | vs200DMA {p(d200,'%')} | "
             f"RSI {p(t['rsi'])} | 5д {p(t['chg5'],'%')} | 20д {p(t['chg20'],'%')} | "
             f"объём×{p(t['vol_r'])} | 52н {p(t['lo52'])}–{p(t['hi52'])}")
+
+
+def _level_pct(symbol: str) -> tuple:
+    """Последнее значение индекса-уровня + его перцентиль за год (0–100)."""
+    try:
+        import yfinance as yf
+        c = yf.Ticker(symbol).history(period="1y", interval="1d")["Close"].dropna()
+        if c.empty:
+            return None, None
+        last = float(c.iloc[-1])
+        pct = float((c < last).mean() * 100)
+        return last, pct
+    except Exception:
+        return None, None
+
+
+def _cnn_fear_greed() -> tuple:
+    """CNN Fear&Greed (score, rating) — неофициальный эндпоинт, браузерный UA.
+
+    Хрупко (Cloudflare/сеть); при любом сбое — (None, None), слой деградирует
+    тихо, а не валит сбор.
+    """
+    try:
+        import requests
+        r = requests.get(
+            "https://production.dataviz.cnn.com/index/fearandgreed/graphdata",
+            headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"},
+            timeout=8)
+        fg = r.json().get("fear_and_greed", {})
+        return round(float(fg["score"])), str(fg.get("rating") or "")
+    except Exception:
+        return None, None
+
+
+def _fmt_sentiment() -> str:
+    """Слой 1 — сентимент/позиционирование рынка (контрарно, сигнал на экстремумах).
+
+    VIX (реализованный страх) + SKEW (спрос на крашевый хедж) + VVIX (неопределённость
+    самой волы) — уровень и перцентиль за год; CNN F&G — единый композит толпы.
+    Низкий VIX + высокий SKEW = благодушие сверху, хедж крашей снизу.
+    """
+    def rank(pct):
+        if pct is None: return ""
+        if pct >= 80: return " ↑экстремум"
+        if pct <= 20: return " ↓экстремум"
+        return ""
+    lines = ["=== Слой 1 — СЕНТИМЕНТ/ПОЗИЦИОНИРОВАНИЕ (контрарно, сигнал на экстремумах) ==="]
+    for sym, nm in (("^VIX", "VIX страх"), ("^SKEW", "SKEW крашевый хедж"),
+                    ("^VVIX", "VVIX вола-волы")):
+        last, pct = _level_pct(sym)
+        if last is None:
+            lines.append(f"  {nm}: н/д")
+        else:
+            lines.append(f"  {nm}: {last:.1f} | перцентиль-1г {pct:.0f}%{rank(pct)}")
+    score, rating = _cnn_fear_greed()
+    if score is None:
+        lines.append("  CNN Fear&Greed: н/д (неофиц. эндпоинт недоступен)")
+    else:
+        extreme = " ← ЭКСТРЕМУМ" if score <= 25 or score >= 75 else ""
+        lines.append(f"  CNN Fear&Greed: {score}/100 · {rating}{extreme}")
+    lines.append("  (F&G включает VIX/put-call/моментум — не считать компоненты "
+                 "отдельными голосами; сигнал контрарный и в основном на экстремумах)")
+    return "\n".join(lines)
 
 
 def _volume_depth(symbol: str, days: int = 15) -> dict:
@@ -288,7 +352,7 @@ def main():
     macro_lines = ["=== Слой 1 — МАКРО (рынок целиком) ==="]
     for sym, nm in MACRO.items():
         macro_lines.append(_fmt_tech(nm, _tech(sym)))
-    macro_ctx = "\n".join(macro_lines)
+    macro_ctx = "\n".join(macro_lines) + "\n\n" + _fmt_sentiment()
 
     # Слой 2 — сектор (peers)
     peers = [p.strip().upper() for p in args.peers.split(",") if p.strip()]
