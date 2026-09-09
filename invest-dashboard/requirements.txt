@@ -9,3 +9,6 @@ requests>=2.31
 # human-source .mhtml → текст+картинки (knowledge/_mhtml_to_text, kernel/mhtml):
 beautifulsoup4>=4.11
 lxml>=4.9
+# измерение графиков материала кодом (chart_method.md, субагент-измеритель):
+pillow>=10.0
+numpy>=1.24

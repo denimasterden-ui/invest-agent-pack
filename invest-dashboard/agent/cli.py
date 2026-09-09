@@ -491,6 +491,31 @@ def cmd_add_material(args):
     return 0
 
 
+_IMG_SUFFIX = {"image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif",
+               "image/webp": ".webp", "image/bmp": ".bmp", "image/svg+xml": ".svg"}
+
+
+def cmd_images(args):
+    """Выгрузить картинки-кандидаты из .mhtml в каталог (для chart-субагента).
+
+    Отбор «статейных» картинок — knowledge._mhtml_image_candidates (аватары/
+    трекеры/реклама отсеяны, #43). Печатает манифест: индекс, тип, путь.
+    """
+    import knowledge
+    raw = Path(args.mhtml).read_bytes()
+    candidates = [item for item in knowledge._mhtml_image_candidates(raw) if item.content]
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    for index, item in enumerate(candidates):
+        suffix = _IMG_SUFFIX.get((item.content_type or "").split(";")[0].strip().lower(), ".png")
+        path = out / f"img_{index:02d}{suffix}"
+        path.write_bytes(item.content)
+        print(f"{index:02d}\t{item.content_type}\t{path}")
+    if not candidates:
+        print("картинок-кандидатов нет", file=sys.stderr)
+    return 0
+
+
 def cmd_baseline(args):
     """Слой 1: базовая линия мерой из профиля.
 
@@ -1366,6 +1391,12 @@ def build_parser():
     p = sub.add_parser("drift", help="движение базового коридора между прогонами")
     p.add_argument("ticker")
     p.set_defaults(fn=cmd_drift)
+
+    p = sub.add_parser("images", help="выгрузить картинки-кандидаты из .mhtml "
+                                      "(для chart-субагента)")
+    p.add_argument("mhtml", help="путь к .mhtml материала")
+    p.add_argument("-o", "--out", required=True, help="каталог для PNG + манифест")
+    p.set_defaults(fn=cmd_images)
 
     p = sub.add_parser("show", help="инвентарь канона: без тикера — роестр всех "
                                     "бумаг, с тикером — профиль/baseline/форки/"
