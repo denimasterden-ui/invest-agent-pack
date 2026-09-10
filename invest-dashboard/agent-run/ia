@@ -1,13 +1,34 @@
 #!/usr/bin/env bash
 # Единая точка входа investagent: канон-рантайм (venv 3.12 + MCP) + agent.cli.
 # Разрешена одним правилом в .claude/settings.local.json — скилл не спрашивает
-# на каждый шаг. Подкоманды: profile|show|baseline|fork|drift|... (как agent.cli),
-# плюс facts ТИКЕР / peers ТИКЕР — обёртки над collect_facts/collect_peers.
+# на каждый шаг. Подкоманды: profile|show|baseline|fork|drift|images|... (как
+# agent.cli), плюс facts ТИКЕР / peers ТИКЕР — обёртки над collect_facts/peers.
+#
+# Настройка (см. SETUP.md):
+#   INVEST_PY        путь к python 3.12 venv (иначе автодетект python3.12/python3)
+#   INVEST_MCP_URL   эндпоинт канона (дефолт — публичный)
+#   INVEST_AUTHOR    твоё имя-автор в каноне (обязательно)
+#   INVEST_TOKEN     токен доступа к канону
 set -euo pipefail
 export INVEST_MCP_URL="${INVEST_MCP_URL:-https://ai.sinizzais.ru/investagent/mcp}"
-export INVEST_AUTHOR="${INVEST_AUTHOR:-denis}"
+
+if [ -z "${INVEST_AUTHOR:-}" ]; then
+  echo "ia: задай INVEST_AUTHOR (твоё имя в каноне) — см. SETUP.md" >&2
+  exit 2
+fi
+export INVEST_AUTHOR
+
 cd "$(cd "$(dirname "$0")/.." && pwd)"
-PY=/Users/denis/.venvs/invest312/bin/python
+
+PY="${INVEST_PY:-}"
+if [ -z "$PY" ]; then
+  PY="$(command -v python3.12 || command -v python3 || true)"
+fi
+if [ -z "$PY" ] || ! "$PY" -c 'import sys; sys.exit(0 if sys.version_info[:2]>=(3,12) else 1)' 2>/dev/null; then
+  echo "ia: нужен python >=3.12 — задай INVEST_PY на свой venv (см. SETUP.md)" >&2
+  exit 2
+fi
+
 case "${1:-}" in
   facts) shift; exec "$PY" agent-run/collect_facts.py "$@" ;;
   peers) shift; exec "$PY" agent-run/collect_peers.py "$@" ;;

@@ -49,7 +49,10 @@ async def _call_tool_async(url: str, name: str, arguments: dict[str, Any]):
     # (сам streamable_http_client headers не принимает); таймаут 30с.
     token = os.environ.get("INVEST_TOKEN", "").strip()
     headers = {"Authorization": f"Bearer {token}"} if token else {}
-    client = httpx2.AsyncClient(headers=headers, timeout=30.0)
+    # connect ограничен 8с — стайл коннекта через прокси не тянет десятки секунд;
+    # read/write щедрее (крупный ответ канона).
+    timeout = httpx2.Timeout(30.0, connect=8.0)
+    client = httpx2.AsyncClient(headers=headers, timeout=timeout)
     try:
         async with streamable_http_client(url, http_client=client) as (read, write):
             async with ClientSession(read, write) as session:
