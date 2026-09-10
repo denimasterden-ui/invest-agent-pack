@@ -46,9 +46,12 @@ def main():
     check("cli prints catalog fields",
           "Каталог призм" in output and "признаки:" in output
           and "предлагает:" in output and "Marathon" in output)
-    check("cli prints informed workflow hint",
-          "прогони призмы против признаков → выбери меру → set scope "
-          "<measure+reason> → confirm" in output)
+    check("cli prints measure rubric (за/против all four)",
+          "Разбор мер" in output and "ЗА:" in output and "ПРОТИВ:" in output
+          and all(m in output for m in ("levered", "ev_revenue", "sotp", "ddm_ri")))
+    check("cli prints deliberation hint (unclear → gather)",
+          "взвесь" in output.lower() and "НЕ форсь меру" in output
+          and "дособери" in output)
     print("All prism CLI evals passed")
 
 

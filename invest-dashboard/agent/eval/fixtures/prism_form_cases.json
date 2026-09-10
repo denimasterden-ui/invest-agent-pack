@@ -3,9 +3,16 @@
   "cases": [
     {
       "id": "hyper_growth",
-      "profile": {"research_type": "growth", "has_stakes": false},
+      "profile": {
+        "research_type": "growth",
+        "has_stakes": false
+      },
       "facts": {
-        "fcf": [18, 31, 52],
+        "fcf": [
+          18,
+          31,
+          52
+        ],
         "sbc": 65,
         "net_income": 100,
         "net_cash": 40,
@@ -16,6 +23,7 @@
         "fcf_stable": true,
         "sbc_ratio": 0.65,
         "net_cash_sign": 1,
+        "equity_to_ev": null,
         "has_stakes": false,
         "research_type": "growth"
       },
@@ -28,61 +36,107 @@
     },
     {
       "id": "cyclical",
-      "profile": {"research_type": "commodity", "has_stakes": false},
-      "facts": {"fcf": [90, -35, 48], "net_debt": 20},
+      "profile": {
+        "research_type": "commodity",
+        "has_stakes": false
+      },
+      "facts": {
+        "fcf": [
+          90,
+          -35,
+          48
+        ],
+        "net_debt": 20
+      },
       "expected_signals": {
         "fcf_sign": 1,
         "fcf_stable": false,
         "sbc_ratio": null,
         "net_cash_sign": -1,
+        "equity_to_ev": null,
         "has_stakes": false,
         "research_type": "commodity"
       },
-      "applicable_prisms": ["Capital Returns — Marathon (Chancellor, Edwards)"],
+      "applicable_prisms": [
+        "Capital Returns — Marathon (Chancellor, Edwards)"
+      ],
       "method": "mid_cycle",
       "measure": "levered"
     },
     {
       "id": "bank",
-      "profile": {"research_type": "bank", "has_stakes": false},
-      "facts": {"net_income": 800, "net_cash": -250},
+      "profile": {
+        "research_type": "bank",
+        "has_stakes": false
+      },
+      "facts": {
+        "net_income": 800,
+        "net_cash": -250
+      },
       "expected_signals": {
         "fcf_sign": null,
         "fcf_stable": null,
         "sbc_ratio": null,
         "net_cash_sign": -1,
+        "equity_to_ev": null,
         "has_stakes": false,
         "research_type": "bank"
       },
-      "applicable_prisms": ["Security Analysis — Graham & Dodd"],
+      "applicable_prisms": [
+        "Security Analysis — Graham & Dodd"
+      ],
       "method": "ddm_ri",
       "measure": "ddm_ri"
     },
     {
       "id": "asset_heavy",
-      "profile": {"research_type": "asset_heavy", "has_stakes": false},
-      "facts": {"fcf": [25, 21, 28], "net_debt": 75},
+      "profile": {
+        "research_type": "asset_heavy",
+        "has_stakes": false
+      },
+      "facts": {
+        "fcf": [
+          25,
+          21,
+          28
+        ],
+        "net_debt": 75
+      },
       "expected_signals": {
         "fcf_sign": 1,
         "fcf_stable": true,
         "sbc_ratio": null,
         "net_cash_sign": -1,
+        "equity_to_ev": null,
         "has_stakes": false,
         "research_type": "asset_heavy"
       },
-      "applicable_prisms": ["Security Analysis — Graham & Dodd"],
+      "applicable_prisms": [
+        "Security Analysis — Graham & Dodd"
+      ],
       "method": "asset_value",
       "measure": "nav"
     },
     {
       "id": "holding",
-      "profile": {"research_type": "holding", "has_stakes": true},
-      "facts": {"fcf": [40, 45], "has_stakes": true, "net_cash": 10},
+      "profile": {
+        "research_type": "holding",
+        "has_stakes": true
+      },
+      "facts": {
+        "fcf": [
+          40,
+          45
+        ],
+        "has_stakes": true,
+        "net_cash": 10
+      },
       "expected_signals": {
         "fcf_sign": 1,
         "fcf_stable": true,
         "sbc_ratio": null,
         "net_cash_sign": 1,
+        "equity_to_ev": null,
         "has_stakes": true,
         "research_type": "holding"
       },
@@ -94,9 +148,23 @@
     },
     {
       "id": "measure_without_prism_reason",
-      "profile": {"research_type": "growth", "has_stakes": false},
-      "facts": {"fcf": [18, 31, 52], "sbc": 65, "net_income": 100},
-      "scope": {"measure": "levered", "confirmed_by": "analyst"},
+      "profile": {
+        "research_type": "growth",
+        "has_stakes": false
+      },
+      "facts": {
+        "fcf": [
+          18,
+          31,
+          52
+        ],
+        "sbc": 65,
+        "net_income": 100
+      },
+      "scope": {
+        "measure": "levered",
+        "confirmed_by": "analyst"
+      },
       "measure": "levered",
       "expected": "refusal"
     }

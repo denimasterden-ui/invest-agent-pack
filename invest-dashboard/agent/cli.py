@@ -293,12 +293,23 @@ def cmd_prisms(args):
             value, ensure_ascii=False)
         print(f"    {name}: {rendered}")
 
+    seed = profile_data.get("measure")
+    print(f"  Разбор мер (взвесь ЗА/ПРОТИВ; роутер предложил «{seed}» — "
+          f"это ГИПОТЕЗА, проверь, не принимай по умолчанию):")
+    for measure, za, protiv in prisms.measure_fit(stock_signals):
+        mark = " ← гипотеза роутера" if measure == seed else ""
+        print(f"    {measure}{mark}")
+        print(f"      ЗА:     {'; '.join(za) if za else '—'}")
+        print(f"      ПРОТИВ: {'; '.join(protiv) if protiv else '—'}")
+
     print("  Каталог призм:")
     for prism in prisms.catalog():
         print(f"    {prism.name} · признаки: {prism.signs} · "
               f"предлагает: {prism.offers}")
-    print("  прогони призмы против признаков → выбери меру → set scope "
-          "<measure+reason> → confirm")
+    print("  Взвесь меры по рубрике+призмам: явный лидер → set scope "
+          "<measure+reason: назови проигравших и что перевесило> → confirm. "
+          "Близко или решающий факт отсутствует → НЕ форсь меру: назови, чего "
+          "не хватает, дособери факты, пере-скорь.")
     return 0
 
 

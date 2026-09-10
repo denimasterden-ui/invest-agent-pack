@@ -78,9 +78,64 @@ def signals(profile: dict, facts: dict) -> dict:
         "fcf_stable": _stable_sign(fcf_values),
         "sbc_ratio": sbc_ratio,
         "net_cash_sign": _net_cash_sign(facts),
+        "equity_to_ev": _equity_to_ev(facts),
         "has_stakes": has_stakes,
         "research_type": profile.get("research_type"),
     }
+
+
+def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
+    """Рубрика выбора меры (SPC-020): по каждой мере — ЗА и ПРОТИВ из сигналов.
+
+    Не выбирает и не отказывает — печатает взвешивание, решает аналитик.
+    equity_to_ev подаётся ГРАДИЕНТОМ (тонкий/умеренный/весомый слой), не порогом.
+    """
+    fcf = signals.get("fcf_sign")
+    stable = signals.get("fcf_stable")
+    stakes = signals.get("has_stakes")
+    ev_ratio = signals.get("equity_to_ev")
+    rtype = (signals.get("research_type") or "").lower()
+    bankish = rtype in {"bank", "financial", "fintech"}
+
+    # equity/EV — словами, градиентом
+    thin = moderate = weighty = False
+    ev_note = None
+    if ev_ratio is not None:
+        pct = f"{ev_ratio * 100:.0f}%"
+        if ev_ratio < 0.35:
+            thin = True; ev_note = f"equity тонкий слой ({pct} EV) — долг доминирует"
+        elif ev_ratio < 0.6:
+            moderate = True; ev_note = f"умеренный левередж (equity {pct} EV)"
+        else:
+            weighty = True; ev_note = f"equity — весомая доля EV ({pct})"
+
+    lev_za, lev_pr = [], []
+    if fcf == 1: lev_za.append("FCF>0")
+    if stable: lev_za.append("FCF стабилен")
+    if weighty: lev_za.append(ev_note)
+    if thin: lev_pr.append(f"{ev_note} → equity-мера хрупка (малая ошибка EV → большая ошибка equity)")
+    if fcf is not None and fcf <= 0: lev_pr.append("FCF ≤0")
+    if stable is False: lev_pr.append("FCF нестабилен")
+    if stakes: lev_pr.append("есть доли — похоже на холдинг")
+    if bankish: lev_pr.append("финансовый бизнес — FCF не та мера")
+
+    evr_za, evr_pr = [], []
+    if thin: evr_za.append(f"{ev_note} → enterprise-взгляд честнее")
+    if fcf is not None and fcf <= 0: evr_za.append("FCF ещё не положителен — оценка по выручке")
+    if stable is False: evr_za.append("FCF волатилен — enterprise устойчивее")
+    if fcf == 1 and stable and weighty:
+        evr_pr.append("зрелый стабильный FCF при весомом equity — levered точнее")
+
+    sotp_za, sotp_pr = [], []
+    if stakes: sotp_za.append("есть доли/сегменты — сумма частей")
+    if stakes is False: sotp_pr.append("моно-бизнес — sum-of-parts избыточен")
+
+    ddm_za, ddm_pr = [], []
+    if bankish: ddm_za.append(f"финансовый бизнес ({rtype}) — ROE/book/payout, не FCF")
+    else: ddm_pr.append("не-финанс — дивидендно-остаточная мера не подходит")
+
+    return [("levered", lev_za, lev_pr), ("ev_revenue", evr_za, evr_pr),
+            ("sotp", sotp_za, sotp_pr), ("ddm_ri", ddm_za, ddm_pr)]
 
 
 def catalog() -> list[Prism]:
@@ -175,6 +230,25 @@ def _net_cash_sign(facts: dict) -> int | None:
         return _sign(net_cash)
     net_debt = _latest_number(facts.get("net_debt"))
     return _sign(-net_debt) if net_debt is not None else None
+
+
+def _equity_to_ev(facts: dict) -> float | None:
+    """Доля рыночного капитала в EV = mktcap / (mktcap + net_debt).
+
+    Вход рубрики выбора меры (SPC-020), не гейт: тонкая доля (долг доминирует
+    EV) — сильный довод против equity-side меры (levered), за enterprise.
+    Net-cash → >1 (не бьёт). Нет price/shares/net_debt → None (пробел, не блок).
+    """
+    price = _latest_number(facts.get("price"))
+    shares = _latest_number(facts.get("shares"))
+    net_debt = _latest_number(facts.get("net_debt"))
+    if price is None or shares is None or net_debt is None or shares <= 0:
+        return None
+    mktcap = price * shares
+    ev = mktcap + net_debt
+    if ev <= 0:
+        return None
+    return mktcap / ev
 
 
 def _numbers(value: Any) -> list[float]:

@@ -24,7 +24,7 @@ def main():
             {"fcf": [20, 35, 50], "sbc": 60, "net_income": 100,
              "net_cash": 25},
             {"fcf_sign": 1, "fcf_stable": True, "sbc_ratio": 0.6,
-             "net_cash_sign": 1, "has_stakes": False,
+             "net_cash_sign": 1, "equity_to_ev": None, "has_stakes": False,
              "research_type": "ai_infra"},
         ),
         (
@@ -32,7 +32,7 @@ def main():
             {"research_type": "mining"},
             {"fcf": [80, -30, 45], "net_cash": -10},
             {"fcf_sign": 1, "fcf_stable": False, "sbc_ratio": None,
-             "net_cash_sign": -1, "has_stakes": None,
+             "net_cash_sign": -1, "equity_to_ev": None, "has_stakes": None,
              "research_type": "mining"},
         ),
     ]
@@ -69,6 +69,34 @@ def main():
           "cli prisms → выбери меру → set scope → confirm" in ungrounded)
     check("gate passes informed justified measure",
           prisms.gate(good, has_info=True) is None)
+
+    # SPC-020: equity_to_ev signal + measure-fit rubric (дилиберация)
+    debt = prisms.signals(
+        {"research_type": "telecom_media"},
+        {"price": 250, "shares": 140_000_000, "net_debt": 97_000_000_000,
+         "fcf": [5, 5.5, 6]})
+    check("equity_to_ev computed",
+          debt["equity_to_ev"] is not None and abs(debt["equity_to_ev"] - 0.265) < 0.01)
+    fit = {m: (za, pr) for m, za, pr in prisms.measure_fit(debt)}
+    check("debt-dominated: levered gets ПРОТИВ долг-доминирования",
+          any("долг доминирует" in p for p in fit["levered"][1]))
+    check("debt-dominated: ev_revenue gets ЗА enterprise",
+          any("enterprise" in z for z in fit["ev_revenue"][0]))
+
+    bank = prisms.signals(
+        {"research_type": "fintech"},
+        {"price": 100, "shares": 190_000_000, "net_debt": 900_000_000_000,
+         "fcf": [1, 1, 1]})
+    bfit = {m: (za, pr) for m, za, pr in prisms.measure_fit(bank)}
+    check("bank: ddm_ri gets ЗА (не выталкивается в ev_revenue вслепую)",
+          bool(bfit["ddm_ri"][0]))
+
+    noshare = prisms.signals({"research_type": "consumer"}, {"fcf": [1, 2, 3]})
+    check("no shares → equity_to_ev None (пробел, не блок)",
+          noshare["equity_to_ev"] is None)
+    nfit = {m: (za, pr) for m, za, pr in prisms.measure_fit(noshare)}
+    check("no shares → нет EV-производного ПРОТИВ у levered",
+          not any(("EV" in p or "долг" in p) for p in nfit["levered"][1]))
 
     print("All prisms evals passed")
 
