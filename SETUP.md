@@ -15,7 +15,7 @@ entry-timing), `beautifulsoup4`+`lxml` (разбор human-source `.mhtml`).
 Прогоны копятся в центральном каноне. Задай в профиле оболочки (`~/.zshrc`):
 ```bash
 export INVEST_PY="$HOME/.venvs/invest312/bin/python"
-export INVEST_MCP_URL="https://ai.sinizzais.ru/investagent/sse"  # публичный канон (TLS)
+export INVEST_MCP_URL="https://ai.sinizzais.ru/investagent/mcp"  # публичный канон (TLS)
 export INVEST_AUTHOR="твоё_имя"                     # атрибуция в каноне (обязательно)
 export INVEST_TOKEN="<твой_токен>"                  # выдаёт владелец канона
 ```

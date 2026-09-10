@@ -35,21 +35,28 @@ def _local():
 
 async def _call_tool_async(url: str, name: str, arguments: dict[str, Any]):
     try:
+        import httpx2
         from mcp import ClientSession
-        from mcp.client.sse import sse_client
+        from mcp.client.streamable_http import streamable_http_client
     except ModuleNotFoundError as error:
         raise RuntimeError(
             "INVEST_MCP_URL is set, but the MCP client is not installed; "
             "install server/requirements.txt"
         ) from error
 
+    # Транспорт streamable-HTTP: чистый request/response, без долгоживущего SSE
+    # (у SSE клиентский teardown за прокси зависал). Токен — через http_client
+    # (сам streamable_http_client headers не принимает); таймаут 30с.
     token = os.environ.get("INVEST_TOKEN", "").strip()
-    headers = {"Authorization": f"Bearer {token}"} if token else None
-    # 15с на коннект (дефолт 5с мал для первого HTTPS-хендшейка через прокси)
-    async with sse_client(url, headers=headers, timeout=15) as streams:
-        async with ClientSession(*streams) as session:
-            await session.initialize()
-            result = await session.call_tool(name, arguments)
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    client = httpx2.AsyncClient(headers=headers, timeout=30.0)
+    try:
+        async with streamable_http_client(url, http_client=client) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                result = await session.call_tool(name, arguments)
+    finally:
+        await client.aclose()
     if getattr(result, "isError", False):
         messages = [getattr(item, "text", str(item)) for item in result.content]
         raise RuntimeError(f"MCP tool {name} failed: {'; '.join(messages)}")

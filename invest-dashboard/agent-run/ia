@@ -4,7 +4,7 @@
 # на каждый шаг. Подкоманды: profile|show|baseline|fork|drift|... (как agent.cli),
 # плюс facts ТИКЕР / peers ТИКЕР — обёртки над collect_facts/collect_peers.
 set -euo pipefail
-export INVEST_MCP_URL="${INVEST_MCP_URL:-https://ai.sinizzais.ru/investagent/sse}"
+export INVEST_MCP_URL="${INVEST_MCP_URL:-https://ai.sinizzais.ru/investagent/mcp}"
 export INVEST_AUTHOR="${INVEST_AUTHOR:-denis}"
 cd "$(cd "$(dirname "$0")/.." && pwd)"
 PY=/Users/denis/.venvs/invest312/bin/python
