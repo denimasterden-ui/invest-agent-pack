@@ -51,7 +51,7 @@ async def _call_tool_async(url: str, name: str, arguments: dict[str, Any]):
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     # connect ограничен 8с — стайл коннекта через прокси не тянет десятки секунд;
     # read/write щедрее (крупный ответ канона).
-    timeout = httpx2.Timeout(30.0, connect=8.0)
+    timeout = httpx2.Timeout(30.0, connect=6.0)
     client = httpx2.AsyncClient(headers=headers, timeout=timeout)
     try:
         async with streamable_http_client(url, http_client=client) as (read, write):
@@ -77,11 +77,47 @@ async def _call_tool_async(url: str, name: str, arguments: dict[str, Any]):
     return values
 
 
+# Только connect-фаза (до отправки запроса) — повтор не задваивает запись.
+# ReadTimeout/TimeoutException НЕ включаем: запрос мог уйти на сервер.
+_CONNECT_STALL = {"ConnectTimeout", "ConnectError", "ConnectionError", "PoolTimeout"}
+
+
+def _is_connect_stall(err: BaseException) -> bool:
+    """Стайл на connect/TLS (start_tls) — до отправки запроса, повтор безопасен.
+
+    Разворачиваем ExceptionGroup (streamable-клиент оборачивает ошибки в
+    TaskGroup) и цепочку __cause__.
+    """
+    names: list[str] = []
+
+    def walk(e):
+        if e is None:
+            return
+        names.append(type(e).__name__)
+        for sub in getattr(e, "exceptions", None) or []:
+            walk(sub)
+        walk(getattr(e, "__cause__", None))
+
+    walk(err)
+    return any(n in _CONNECT_STALL for n in names)
+
+
 def _call_tool(name: str, arguments: dict[str, Any]):
     url = _mcp_url()
     if url is None:
         raise RuntimeError("MCP endpoint is not configured")
-    return asyncio.run(_call_tool_async(url, name, arguments))
+    # Каждый вызов = новое соединение; TLS-хендшейк к прокси интермиттентно виснет
+    # (см. ref_v2_mcp_client_setup). Стайл — до отправки запроса, поэтому повтор с
+    # новым соединением безопасен и почти всегда проходит; connect ограничен 6с.
+    last: BaseException | None = None
+    for attempt in range(3):
+        try:
+            return asyncio.run(_call_tool_async(url, name, arguments))
+        except Exception as error:  # noqa: BLE001 - решаем по типу ниже
+            if attempt == 2 or not _is_connect_stall(error):
+                raise
+            last = error
+    raise last  # pragma: no cover - цикл всегда либо вернул, либо бросил
 
 
 def _as_list(value):
