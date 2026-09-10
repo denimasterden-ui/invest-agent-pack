@@ -45,7 +45,8 @@ async def _call_tool_async(url: str, name: str, arguments: dict[str, Any]):
 
     token = os.environ.get("INVEST_TOKEN", "").strip()
     headers = {"Authorization": f"Bearer {token}"} if token else None
-    async with sse_client(url, headers=headers) as streams:
+    # 15с на коннект (дефолт 5с мал для первого HTTPS-хендшейка через прокси)
+    async with sse_client(url, headers=headers, timeout=15) as streams:
         async with ClientSession(*streams) as session:
             await session.initialize()
             result = await session.call_tool(name, arguments)
