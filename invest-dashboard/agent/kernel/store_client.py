@@ -214,13 +214,28 @@ def get_profile(ticker):
         from agent import profile
         return profile._build_registry(ticker)
     canonical = _call_tool("get_profile", {"ticker": ticker})
-    if canonical is not None:
+    # Канон-промах отдаётся пустым списком, не None → проверяем именно dict
+    # (иначе .get() падал на []; SPC-021).
+    if isinstance(canonical, dict) and canonical:
         canonical["comps"] = _canonical_comps(canonical.get("comps"))
         canonical.setdefault("segments", [])
         canonical.setdefault("scope", {})
         return canonical
+    # Тикер есть в реестре, но не в каноне → строим из реестра и СЕЕМ в канон
+    # (SPC-021: /run создаёт тикер, если не нашёл — становится общим). Мера —
+    # гипотеза, решает призм-дилиберация. Идемпотентно; сбой сева не критичен.
     from agent import profile
-    return profile._build_registry(ticker, replay_local=False)
+    built = profile._build_registry(ticker, replay_local=False)
+    try:
+        eff = built.effective
+        _call_tool("create_profile", {
+            "ticker": ticker, "measure": built.measure,
+            "drivers": list(eff.drivers), "caps": list(eff.caps),
+            "comps": list(eff.comps), "data_gaps": list(eff.data_gaps),
+        })
+    except Exception:
+        pass
+    return built
 
 
 def get_profile_history(ticker):
