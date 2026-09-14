@@ -155,7 +155,8 @@ def _band(fn, scenario):
     if rate <= SENSITIVITY_BAND:
         raise ValueError("discount_rate слишком мал для sensitivity band")
     low, high = fn(rate + SENSITIVITY_BAND), fn(rate - SENSITIVITY_BAND)
-    return round(min(low, high), 2), round(max(low, high), 2)
+    # Limited liability: enterprise value below debt wipes equity out at zero.
+    return round(max(0, min(low, high)), 2), round(max(0, max(low, high)), 2)
 
 
 def _base(data):
