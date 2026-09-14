@@ -11,6 +11,8 @@ Each entry:
                   default | ai_infra | oil_gas | litigation_finance |
                   gse | mining | healthcare | fintech | consumer |
                   telecom_media | chemicals | reit | russia
+  business_type — optional valuation hypothesis used by the SPC-020 rubric;
+                  balance_finance | asset_light_finance | marketplace
   has_stakes    — optional, True if the company holds separately-valuable
                   stakes/spin-offs a plain operating DCF wouldn't capture
                   (drives method_router.py → 'sotp'). Absent/False by default.
@@ -144,14 +146,14 @@ TICKERS = [
     {"key": "PTAL",  "yf": "PTAL.L",   "currency": "GBp", "name": "PetroTal",                  "group": "Нефть & Газ",            "research_type": "oil_gas"},
 
     # --- Финансы & Fintech ---
-    {"key": "KSPI",  "yf": "KSPI",     "currency": "USD", "name": "Kaspi.kz (Nasdaq)",         "group": "Финансы & Fintech",      "research_type": "fintech"},
-    {"key": "TIGR",  "yf": "TIGR",     "currency": "USD", "name": "UP Fintech (Tiger Brokers)", "group": "Финансы & Fintech",     "research_type": "fintech"},
+    {"key": "KSPI",  "yf": "KSPI",     "currency": "USD", "name": "Kaspi.kz (Nasdaq)",         "group": "Финансы & Fintech",      "research_type": "fintech", "business_type": "balance_finance"},
+    {"key": "TIGR",  "yf": "TIGR",     "currency": "USD", "name": "UP Fintech (Tiger Brokers)", "group": "Финансы & Fintech",     "research_type": "fintech", "business_type": "asset_light_finance"},
     {"key": "BUR",   "yf": "BUR",      "currency": "USD", "name": "Burford Capital",           "group": "Финансы & Fintech",      "research_type": "litigation_finance"},
     {"key": "FNMA",  "yf": "FNMA",     "currency": "USD", "name": "Fannie Mae",                "group": "Финансы & Fintech",      "research_type": "gse"},
     {"key": "FMCC",  "yf": "FMCC",     "currency": "USD", "name": "Freddie Mac",               "group": "Финансы & Fintech",      "research_type": "gse"},
-    {"key": "MRX",   "yf": "MRX",      "currency": "USD", "name": "Marex Group",               "group": "Финансы & Fintech",      "research_type": "fintech"},
-    {"key": "PYPL",  "yf": "PYPL",     "currency": "USD", "name": "PayPal Holdings",           "group": "Финансы & Fintech",      "research_type": "fintech"},
-    {"key": "FISV",  "yf": "FISV",     "currency": "USD", "name": "Fiserv",                    "group": "Финансы & Fintech",      "research_type": "fintech"},
+    {"key": "MRX",   "yf": "MRX",      "currency": "USD", "name": "Marex Group",               "group": "Финансы & Fintech",      "research_type": "fintech", "business_type": "asset_light_finance"},
+    {"key": "PYPL",  "yf": "PYPL",     "currency": "USD", "name": "PayPal Holdings",           "group": "Финансы & Fintech",      "research_type": "fintech", "business_type": "asset_light_finance"},
+    {"key": "FISV",  "yf": "FISV",     "currency": "USD", "name": "Fiserv",                    "group": "Финансы & Fintech",      "research_type": "fintech", "business_type": "asset_light_finance"},
 
     # --- Healthcare ---
     {"key": "UNH",   "yf": "UNH",      "currency": "USD", "name": "UnitedHealth",              "group": "Healthcare",             "research_type": "healthcare"},
@@ -173,7 +175,7 @@ TICKERS = [
     # --- Китай / HK ---
     {"key": "1810.HK", "yf": "1810.HK", "currency": "HKD", "name": "Xiaomi",                  "group": "Китай / HK",              "research_type": "consumer"},
     {"key": "0001.HK", "yf": "0001.HK", "currency": "HKD", "name": "CK Hutchison",            "group": "Китай / HK",              "research_type": "default"},
-    {"key": "2318.HK", "yf": "2318.HK", "currency": "HKD", "name": "Ping An Insurance",       "group": "Китай / HK",              "research_type": "fintech"},
+    {"key": "2318.HK", "yf": "2318.HK", "currency": "HKD", "name": "Ping An Insurance",       "group": "Китай / HK",              "research_type": "fintech", "business_type": "balance_finance"},
 
     # --- Growth / Consumer ---
     {"key": "NFLX",  "yf": "NFLX",     "currency": "USD", "name": "Netflix",                  "group": "Growth / Consumer",       "research_type": "telecom_media"},
@@ -181,7 +183,7 @@ TICKERS = [
     {"key": "LULU",  "yf": "LULU",     "currency": "USD", "name": "Lululemon Athletica",      "group": "Growth / Consumer",       "research_type": "consumer"},
     {"key": "CHTR",  "yf": "CHTR",     "currency": "USD", "name": "Charter Communications",   "group": "Growth / Consumer",       "research_type": "telecom_media"},
     {"key": "LINE",  "yf": "LINE",     "currency": "USD", "name": "Lineage, Inc.",             "group": "Growth / Consumer",       "research_type": "reit"},
-    {"key": "MELI",  "yf": "MELI",     "currency": "USD", "name": "MercadoLibre",             "group": "Growth / Consumer",       "research_type": "fintech"},
+    {"key": "MELI",  "yf": "MELI",     "currency": "USD", "name": "MercadoLibre",             "group": "Growth / Consumer",       "research_type": "fintech", "business_type": "marketplace"},
     {"key": "ADBE",  "yf": "ADBE",     "currency": "USD", "name": "Adobe Inc.",               "group": "Growth / Consumer",       "research_type": "default"},
 
     # --- Value & Special Situations ---
