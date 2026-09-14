@@ -73,14 +73,13 @@ class Profile:
         return self.measure in IMPLEMENTED
 
 
-# Профили по типу бизнеса. Внутри research_type бывает развилка (банк против
-# процессинга, неоклауд против производителя железа) — она решается явным
-# списком, а не эвристикой по цифрам: перепутать банк с процессингом дороже,
-# чем поддерживать список.
+# Профили по типу бизнеса. Финансы разделены registry-признаком business_type;
+# развилка внутри ai_infra (неоклауд против производителя железа) пока
+# решается явным списком, а не эвристикой по цифрам.
 NEOCLOUD = {"NBIS"}
 HARDWARE_AI = {"DELL"}
 MEMORY_CYCLE = {"MU"}
-BANKS = {"KSPI", "TIGR", "MRX", "2318.HK", "SBER", "T"}
+BANKS = {"SBER", "T"}
 
 _BY_KIND = {
     "bank": dict(
@@ -165,10 +164,12 @@ _BY_KIND = {
 }
 
 
-def _kind(ticker, research_type, has_stakes):
+def _kind(ticker, research_type, has_stakes, business_type=None):
     if has_stakes:
         return "holding"
-    if research_type in ("fintech", "russia") and ticker in BANKS:
+    if business_type == "balance_finance" or research_type == "balance_finance":
+        return "bank"
+    if research_type == "russia" and ticker in BANKS:
         return "bank"
     if research_type in ("litigation_finance", "specialty_finance"):
         return "nav"
@@ -204,10 +205,12 @@ def _build_registry(ticker, research_type=None, has_stakes=None, *,
         if has_stakes is None:
             has_stakes = bool(entry.get("has_stakes"))
 
-    kind = _kind(ticker, research_type, has_stakes)
+    business_type = entry.get("business_type") if entry is not None else None
+    kind = _kind(ticker, research_type, has_stakes, business_type)
     core_fields = None
     if kind == "holding":
-        core_fields = dict(_BY_KIND[_kind(ticker, research_type, has_stakes=False)])
+        core_fields = dict(_BY_KIND[_kind(
+            ticker, research_type, has_stakes=False, business_type=business_type)])
     wrapper_fields = dict(_BY_KIND[kind])
 
     state = dict(overrides) if overrides is not None else {}

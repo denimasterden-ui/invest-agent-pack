@@ -73,7 +73,15 @@ def signals(profile: dict, facts: dict) -> dict:
     else:
         has_stakes = None
 
-    return {
+    business_type = profile.get("business_type")
+    if business_type is None and profile.get("ticker"):
+        # Profile is intentionally storage-compatible and does not duplicate
+        # the registry classification; CLI/asdict profiles still resolve it.
+        from .kernel import tickers
+        entry = tickers.TICKERS_BY_KEY.get(profile["ticker"], {})
+        business_type = entry.get("business_type")
+
+    result = {
         "fcf_sign": _sign(current_fcf),
         "fcf_stable": _stable_sign(fcf_values),
         "sbc_ratio": sbc_ratio,
@@ -82,6 +90,9 @@ def signals(profile: dict, facts: dict) -> dict:
         "has_stakes": has_stakes,
         "research_type": profile.get("research_type"),
     }
+    if business_type is not None:
+        result["business_type"] = business_type
+    return result
 
 
 def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
@@ -95,7 +106,11 @@ def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
     stakes = signals.get("has_stakes")
     ev_ratio = signals.get("equity_to_ev")
     rtype = (signals.get("research_type") or "").lower()
-    bankish = rtype in {"bank", "financial", "fintech"}
+    business_type = (signals.get("business_type") or rtype).lower()
+    # Legacy generic finance inputs remain conservative; registry entries use
+    # the substantive tags below, so processors no longer arrive as fintech.
+    bankish = business_type in {"bank", "financial", "fintech", "balance_finance"}
+    asset_light_finance = business_type == "asset_light_finance"
     navish = rtype in {"litigation_finance", "specialty_finance"}
 
     # equity/EV — словами, градиентом
@@ -121,6 +136,8 @@ def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
     if stable is False: lev_pr.append("FCF нестабилен")
     if stakes: lev_pr.append("есть доли — похоже на холдинг")
     if bankish: lev_pr.append("финансовый бизнес — FCF не та мера")
+    if asset_light_finance:
+        lev_za.append("asset-light процессор/брокер — FCF отражает economics бизнеса")
 
     evr_za, evr_pr = [], []
     if thin: evr_za.append(f"{ev_note} → enterprise-взгляд честнее")
@@ -129,6 +146,8 @@ def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
     if stable is False: evr_za.append("FCF волатилен — enterprise устойчивее")
     if fcf == 1 and stable and weighty:
         evr_pr.append("зрелый стабильный FCF при весомом equity — levered точнее")
+    if asset_light_finance:
+        evr_za.append("asset-light процессор/брокер — выручка пригодна для enterprise-сверки")
 
     sotp_za, sotp_pr = [], []
     if stakes: sotp_za.append("есть доли/сегменты — сумма частей")
@@ -136,6 +155,8 @@ def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
 
     ddm_za, ddm_pr = [], []
     if bankish: ddm_za.append(f"финансовый бизнес ({rtype}) — ROE/book/payout, не FCF")
+    elif asset_light_finance:
+        ddm_pr.append("asset-light процессор/брокер — нет балансового моста ROE/book")
     else: ddm_pr.append("не-финанс — дивидендно-остаточная мера не подходит")
 
     nav_za, nav_pr = [], []
