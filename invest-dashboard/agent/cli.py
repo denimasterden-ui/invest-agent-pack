@@ -508,6 +508,40 @@ def cmd_add_material(args):
     return 0
 
 
+def cmd_add_finding(args):
+    """Write a run lesson to the canonical shared findings store."""
+    ticker = _resolve(args.ticker)["key"]
+    body = _read_text(args.body)
+    finding_id = store_client.add_finding(
+        args.category, args.title, body, ticker=ticker)
+    if finding_id is None and not store_client.configured():
+        print(f"{ticker}: канон не настроен — урок не записан")
+        return 0
+    print(f"{ticker}: урок «{args.title}» записан в канон"
+          f"{f' (id {finding_id})' if finding_id is not None else ''}")
+    return 0
+
+
+def cmd_findings(args):
+    """Print canonical run lessons for one ticker in a human-readable form."""
+    ticker = _resolve(args.ticker)["key"]
+    rows = [row for row in store_client.list_findings(args.status)
+            if row.get("ticker") == ticker]
+    if not rows:
+        print(f"{ticker}: уроков прогонов нет")
+        return 0
+    print(f"{ticker} — уроки прогонов")
+    for row in rows:
+        category = row.get("category") or "без категории"
+        status = row.get("status") or "—"
+        created = _fmt_date(row.get("created_at"))
+        print(f"  #{row.get('id', '?')} · {category} · {status} · {created}")
+        print(f"    {row.get('title') or 'Без названия'}")
+        for line in str(row.get("body") or "").splitlines():
+            print(f"    {line}")
+    return 0
+
+
 _IMG_SUFFIX = {"image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif",
                "image/webp": ".webp", "image/bmp": ".bmp", "image/svg+xml": ".svg"}
 
@@ -1439,6 +1473,19 @@ def build_parser():
     p.add_argument("--for-measure", default=None,
                    help="мера разбора (по умолчанию текущая мера профиля)")
     p.set_defaults(fn=cmd_add_material)
+
+    p = sub.add_parser("add-finding", help="записать урок прогона в канон")
+    p.add_argument("ticker")
+    p.add_argument("--category", required=True, help="категория урока")
+    p.add_argument("--title", required=True, help="краткий заголовок урока")
+    p.add_argument("--body", required=True, help="файл с текстом урока")
+    p.set_defaults(fn=cmd_add_finding)
+
+    p = sub.add_parser("findings", help="показать уроки прогонов по тикеру")
+    p.add_argument("ticker")
+    p.add_argument("--status", default=None,
+                   help="фильтр статуса канона (по умолчанию все)")
+    p.set_defaults(fn=cmd_findings)
 
     p = sub.add_parser("ingest", help="структурный разбор материала по трём "
                                       "адресатам из готового JSON-split (--answer)")

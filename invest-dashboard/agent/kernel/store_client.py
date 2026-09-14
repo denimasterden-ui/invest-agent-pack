@@ -375,6 +375,26 @@ def add_material(
     })
 
 
+def list_findings(status=None):
+    """Read shared findings, returning an empty list in local mode."""
+    if _mcp_url() is None:
+        return []
+    arguments = {} if status is None else {"status": status}
+    return _as_list(_call_tool("list_findings", arguments))
+
+
+def add_finding(category, title, body, ticker=None):
+    """Store a shared run lesson, or safely no-op in local mode."""
+    if _mcp_url() is None:
+        return None
+    return _call_tool("add_finding", {
+        "category": category,
+        "title": title,
+        "body": body,
+        "ticker": ticker,
+    })
+
+
 def get_material(ticker):
     """Read parsed materials, returning an empty list in local mode."""
     if _mcp_url() is None:
