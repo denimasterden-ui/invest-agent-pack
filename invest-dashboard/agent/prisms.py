@@ -110,10 +110,12 @@ def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
             weighty = True; ev_note = f"equity — весомая доля EV ({pct})"
 
     lev_za, lev_pr = [], []
+    missing_ev_note = "решающий факт отсутствует → меру не форсить"
     if fcf == 1: lev_za.append("FCF>0")
     if stable: lev_za.append("FCF стабилен")
     if weighty: lev_za.append(ev_note)
     if thin: lev_pr.append(f"{ev_note} → equity-мера хрупка (малая ошибка EV → большая ошибка equity)")
+    if ev_ratio is None: lev_pr.append(missing_ev_note)
     if fcf is not None and fcf <= 0: lev_pr.append("FCF ≤0")
     if stable is False: lev_pr.append("FCF нестабилен")
     if stakes: lev_pr.append("есть доли — похоже на холдинг")
@@ -121,6 +123,7 @@ def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
 
     evr_za, evr_pr = [], []
     if thin: evr_za.append(f"{ev_note} → enterprise-взгляд честнее")
+    if ev_ratio is None: evr_pr.append(missing_ev_note)
     if fcf is not None and fcf <= 0: evr_za.append("FCF ещё не положителен — оценка по выручке")
     if stable is False: evr_za.append("FCF волатилен — enterprise устойчивее")
     if fcf == 1 and stable and weighty:
@@ -237,12 +240,19 @@ def _equity_to_ev(facts: dict) -> float | None:
 
     Вход рубрики выбора меры (SPC-020), не гейт: тонкая доля (долг доминирует
     EV) — сильный довод против equity-side меры (levered), за enterprise.
-    Net-cash → >1 (не бьёт). Нет price/shares/net_debt → None (пробел, не блок).
+    Net-cash → >1 (не бьёт). Net debt при необходимости выводится как
+    total_debt − cash. Неполный market cap или net debt → None (пробел, не блок).
     """
     price = _latest_number(facts.get("price"))
     shares = _latest_number(facts.get("shares"))
     net_debt = _latest_number(facts.get("net_debt"))
-    if price is None or shares is None or net_debt is None or shares <= 0:
+    if net_debt is None:
+        total_debt = _latest_number(facts.get("total_debt"))
+        cash = _latest_number(facts.get("cash"))
+        if total_debt is not None and cash is not None:
+            net_debt = total_debt - cash
+    if (price is None or shares is None or net_debt is None
+            or price <= 0 or shares <= 0):
         return None
     mktcap = price * shares
     ev = mktcap + net_debt

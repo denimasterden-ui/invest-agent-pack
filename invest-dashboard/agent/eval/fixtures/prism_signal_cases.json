@@ -31,6 +31,8 @@
           85,
           100
         ],
+        "price": 100,
+        "shares": 5,
         "net_debt": -25
       },
       "expected": {
@@ -38,9 +40,32 @@
         "fcf_stable": true,
         "sbc_ratio": 0.6,
         "net_cash_sign": 1,
-        "equity_to_ev": null,
+        "equity_to_ev": 1.0526315789473684,
         "has_stakes": false,
         "research_type": "ai_infra"
+      }
+    },
+    {
+      "id": "derived_net_debt",
+      "ticker": "DEBT",
+      "profile": {
+        "research_type": "telecom_media",
+        "has_stakes": false
+      },
+      "facts": {
+        "price": 100,
+        "shares": 5,
+        "total_debt": 125,
+        "cash": 25
+      },
+      "expected": {
+        "fcf_sign": null,
+        "fcf_stable": null,
+        "sbc_ratio": null,
+        "net_cash_sign": null,
+        "equity_to_ev": 0.8333333333333334,
+        "has_stakes": false,
+        "research_type": "telecom_media"
       }
     },
     {
