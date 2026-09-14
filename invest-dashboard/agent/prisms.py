@@ -95,6 +95,23 @@ def signals(profile: dict, facts: dict) -> dict:
     return result
 
 
+def decisive_gaps(signals: dict) -> list[str]:
+    """Чего не хватает, чтобы ВЗВЕСИТЬ меры — это пробел, а не довод.
+
+    Отсутствующий факт раньше печатался как ПРОТИВ у levered и ev_revenue, и
+    в обычном прогоне без --facts засорял обе колонки в каждой бумаге: против
+    всего находилось «возражение», и настоящие доводы терялись. Пробел живёт
+    отдельной строкой — он адресует аналитика к сбору фактов, а не к мере.
+    """
+    gaps = []
+    if signals.get("equity_to_ev") is None:
+        gaps.append("доля капитала в EV — нужны price, shares и net_debt "
+                    "(или total_debt и cash)")
+    if signals.get("fcf_sign") is None:
+        gaps.append("знак FCF — нужен ряд свободного денежного потока")
+    return gaps
+
+
 def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
     """Рубрика выбора меры (SPC-020): по каждой мере — ЗА и ПРОТИВ из сигналов.
 
@@ -126,12 +143,10 @@ def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
             weighty = True; ev_note = f"equity — весомая доля EV ({pct})"
 
     lev_za, lev_pr = [], []
-    missing_ev_note = "решающий факт отсутствует → меру не форсить"
     if fcf == 1: lev_za.append("FCF>0")
     if stable: lev_za.append("FCF стабилен")
     if weighty: lev_za.append(ev_note)
     if thin: lev_pr.append(f"{ev_note} → equity-мера хрупка (малая ошибка EV → большая ошибка equity)")
-    if ev_ratio is None: lev_pr.append(missing_ev_note)
     if fcf is not None and fcf <= 0: lev_pr.append("FCF ≤0")
     if stable is False: lev_pr.append("FCF нестабилен")
     if stakes: lev_pr.append("есть доли — похоже на холдинг")
@@ -141,7 +156,6 @@ def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
 
     evr_za, evr_pr = [], []
     if thin: evr_za.append(f"{ev_note} → enterprise-взгляд честнее")
-    if ev_ratio is None: evr_pr.append(missing_ev_note)
     if fcf is not None and fcf <= 0: evr_za.append("FCF ещё не положителен — оценка по выручке")
     if stable is False: evr_za.append("FCF волатилен — enterprise устойчивее")
     if fcf == 1 and stable and weighty:

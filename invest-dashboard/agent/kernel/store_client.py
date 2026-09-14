@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
+from contextlib import contextmanager
 from typing import Any
 from urllib.parse import urlparse
 
@@ -102,6 +104,29 @@ def _is_connect_stall(err: BaseException) -> bool:
     return any(n in _CONNECT_STALL for n in names)
 
 
+# Логгеры mcp-клиента: они пишут logger.exception на сбое транспорта, и без
+# настроенных хендлеров это уходит в stderr вместе с трейсбеком.
+_MCP_LOGGERS = ("mcp.client.streamable_http", "mcp.shared.session",
+                "mcp.client.session", "httpx2", "httpcore2")
+
+
+@contextmanager
+def _quiet_mcp_logs(quiet: bool):
+    """Приглушить транспортные логи на попытке, которую мы ещё повторим."""
+    if not quiet:
+        yield
+        return
+    saved = [(logging.getLogger(n), logging.getLogger(n).level)
+             for n in _MCP_LOGGERS]
+    for log, _ in saved:
+        log.setLevel(logging.CRITICAL)
+    try:
+        yield
+    finally:
+        for log, level in saved:
+            log.setLevel(level)
+
+
 def _call_tool(name: str, arguments: dict[str, Any]):
     url = _mcp_url()
     if url is None:
@@ -112,7 +137,12 @@ def _call_tool(name: str, arguments: dict[str, Any]):
     last: BaseException | None = None
     for attempt in range(3):
         try:
-            return asyncio.run(_call_tool_async(url, name, arguments))
+            # Попытку, которую МОЖЕМ повторить, глушим: mcp-клиент пишет
+            # logger.exception, и трейсбек восстановленного стайла утекал
+            # пользователю — команда отрабатывала, а выглядело как авария.
+            # Последняя попытка остаётся громкой: её провал настоящий.
+            with _quiet_mcp_logs(attempt < 2):
+                return asyncio.run(_call_tool_async(url, name, arguments))
         except Exception as error:  # noqa: BLE001 - решаем по типу ниже
             if attempt == 2 or not _is_connect_stall(error):
                 raise

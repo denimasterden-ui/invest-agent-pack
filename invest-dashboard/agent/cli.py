@@ -299,6 +299,12 @@ def cmd_prisms(args):
         print(f"    {name}: {rendered}")
 
     seed = profile_data.get("measure")
+    gaps = prisms.decisive_gaps(stock_signals)
+    if gaps:
+        print("  Не хватает, чтобы взвесить (это пробел, не довод против меры):")
+        for gap in gaps:
+            print(f"    · {gap}")
+
     print(f"  Разбор мер (взвесь ЗА/ПРОТИВ; роутер предложил «{seed}» — "
           f"это ГИПОТЕЗА, проверь, не принимай по умолчанию):")
     for measure, za, protiv in prisms.measure_fit(stock_signals):
