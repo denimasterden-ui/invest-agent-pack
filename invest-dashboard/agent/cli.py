@@ -917,7 +917,9 @@ def cmd_fork(args):
             print(f"    · {p.code}: {p.message}")
         return 3
     try:
-        b = fork.basis(base, price=args.price, price_currency=args.quote_currency)
+        b = fork.basis(base, price=args.price,
+                       price_currency=args.quote_currency,
+                       historical_fcf_margins=_historical_margins(args))
     except ValueError as e:
         raise CmdError(str(e)) from e
     print(f"{ticker} — {entry['name']} — форки базовой линии "
@@ -953,6 +955,23 @@ def _print_generation_recheck(answer_text, forks, basis):
     print("\n  recheck на момент генерации — условия отстают от фактов:")
     for label, c in stale:
         print(f"    · {label}: ОТСТАЁТ «{c.condition}» ↔ {c.fact}")
+
+
+def _historical_margins(args):
+    """Исторический ряд маржи FCF из поданных фактов — вход проверки терминала.
+
+    Без него форк не может судить, подпёрта ли терминальная величина историей
+    бумаги, и молчит (отсутствие ряда — не улика). Ряд кладёт сборщик фактов.
+    """
+    path = getattr(args, "facts", None)
+    if not path:
+        return None
+    try:
+        facts = _load_json(path)
+    except Exception:
+        return None
+    series = facts.get("historical_fcf_margins") if isinstance(facts, dict) else None
+    return series or None
 
 
 def _baseline_for_fork(args, ticker):
@@ -1130,7 +1149,8 @@ def cmd_idea(args):
         return 3
     try:
         b = fork.basis(base, price=args.price,
-                       price_currency=args.quote_currency)
+                       price_currency=args.quote_currency,
+                       historical_fcf_margins=_historical_margins(args))
         made = idea.build(
             b, selected, entry=args.entry, horizon_months=args.horizon_months,
             exit=args.exit, catalysts=tuple(args.catalyst), status=args.status)
@@ -1183,7 +1203,9 @@ def cmd_recheck(args):
         raise CmdError("ответ речека: ждёт ключ 'forks' со списком сверок")
 
     try:
-        b = fork.basis(base, price=args.price, price_currency=args.quote_currency)
+        b = fork.basis(base, price=args.price,
+                       price_currency=args.quote_currency,
+                       historical_fcf_margins=_historical_margins(args))
     except ValueError as e:
         raise CmdError(str(e)) from e
 

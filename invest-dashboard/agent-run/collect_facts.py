@@ -112,6 +112,42 @@ def _trailing_value(frame, names, period, frequency):
     return sum(values)
 
 
+def _fcf_margin_series(ticker, income, frequency):
+    """Исторический ряд маржи FCF = (OpCF - capex) / выручка, по периодам.
+
+    Ряд нужен форку: терминальная величина вне диапазона собственной истории —
+    НАБЛЮДЕНИЕ, а не база (случай CRWV, где bull держался на марже 24%, которой
+    у компании никогда не было). Провайдер отчёт о движении денег отдаёт не
+    всегда — тогда возвращаем пусто: отсутствие ряда не улика, форк просто не
+    судит о терминале.
+    """
+    name = "quarterly_cashflow" if frequency == "quarterly" else "cashflow"
+    cash = _statement(ticker, name)
+    if not _has_data(cash):
+        return []
+    opcf_row = _row(cash, ("Operating Cash Flow", "Total Cash From Operating Activities"))
+    capex_row = _row(cash, ("Capital Expenditure", "Capital Expenditures"))
+    revenue_row = _row(income, ("Total Revenue", "Operating Revenue"))
+    if opcf_row is None or revenue_row is None:
+        return []
+
+    margins = []
+    for column in cash.columns:
+        period = _date(column)
+        opcf = _number(opcf_row[column])
+        capex = _number(capex_row[column]) if capex_row is not None else 0.0
+        revenue = None
+        for income_column in income.columns:
+            if _date(income_column) == period:
+                revenue = _number(revenue_row[income_column])
+                break
+        if opcf is None or revenue is None or not revenue:
+            continue
+        # capex у провайдера приходит отрицательным — складываем, не вычитаем.
+        margins.append(round((opcf + (capex or 0.0)) / revenue, 6))
+    return list(reversed(margins))
+
+
 def _net_debt(balance, period):
     """Return provider net debt, or debt less cash for the selected period."""
     reported = _period_value(balance, ("Net Debt",), period)
@@ -357,6 +393,8 @@ def collect(symbol):
             balance, ("Stockholders Equity", "Common Stock Equity",
                       "Total Equity Gross Minority Interest"), period),
         "net_debt": _net_debt(balance, period),
+        "historical_fcf_margins": _fcf_margin_series(
+            ticker, income, frequency),
         "period_end": period.isoformat(),
         "available_end": period.isoformat(),
         "fx": None,
