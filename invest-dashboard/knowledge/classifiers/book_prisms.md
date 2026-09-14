@@ -21,7 +21,7 @@ supersedes: null
 
 **Security Analysis — Graham & Dodd**
 - Признаки: asset-heavy бизнес (добыча, REIT, банки, холдинги); вопросы к качеству прибыли.
-- Предлагает: ликвидационная/стоимость активов, поправки баланса, качество прибыли → поправка на owners' earnings.
+- Предлагает: NAV как отдельную меру для asset-heavy и портфельных бизнесов: скорректированный book value × justified P/BV; поправки баланса и peer-дисконт дают Margin of Safety, доли и event-опционы идут отдельными строками.
 - Не применим: asset-light (SaaS, процессинг).
 
 **Common Stocks and Uncommon Profits — Philip Fisher**

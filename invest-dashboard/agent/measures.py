@@ -36,9 +36,18 @@ def calculate(ticker, assumptions, physical=None):
         if prof.measure == profile.LEVERED:
             corridor = _levered(assumptions)
             scenarios = assumptions.get("scenarios", {})
+        elif prof.measure == profile.NAV:
+            corridor = _nav(assumptions)
+            scenarios = assumptions.get("scenarios", {})
+            if assumptions.get("stakes"):
+                corridor = _add_stakes(
+                    corridor, assumptions, _positive_number(assumptions, "shares"))
         elif prof.measure in (profile.EV_REVENUE, profile.SOTP):
             owner = assumptions.get("core", assumptions)
-            corridor = _ev_revenue(owner)
+            core_measure = getattr(prof.core, "measure", None)
+            corridor = (_nav(owner) if (prof.measure == profile.SOTP
+                                        and core_measure == profile.NAV)
+                        else _ev_revenue(owner))
             scenarios = owner.get("scenarios", {})
             if prof.measure == profile.SOTP:
                 corridor = _add_stakes(corridor, assumptions, owner["shares"])
@@ -134,6 +143,32 @@ def _ev_revenue(data):
         ev = terminal_revenue * margin * multiple / (1 + rate) ** len(path)
         return (ev + net_cash) / shares
     return _band(value, scenario)
+
+
+def _nav(data):
+    """Equity value from adjusted book and a peer-calibrated justified P/BV."""
+    scenario = _base(data)
+    book_value = _positive_number(data, "book_value")
+    shares = _positive_number(data, "shares")
+    roe = _number(scenario, "roe")
+    coe = _number(scenario, "coe")
+    growth = _number(scenario, "g")
+    peer_discount = _number(scenario, "peer_discount")
+    if not 0 <= peer_discount < 1:
+        raise ValueError("peer_discount должен быть в [0, 1)")
+    if coe <= SENSITIVITY_BAND:
+        raise ValueError("coe слишком мал для sensitivity band")
+
+    def value(rate):
+        if rate <= growth:
+            raise ValueError("coe должен быть выше growth")
+        justified_pbv = (roe - growth) / (rate - growth)
+        calibrated_pbv = justified_pbv * (1 - peer_discount)
+        return book_value * calibrated_pbv / shares
+
+    low = value(coe + SENSITIVITY_BAND)
+    high = value(coe - SENSITIVITY_BAND)
+    return round(max(0, min(low, high)), 2), round(max(0, max(low, high)), 2)
 
 
 def _add_stakes(corridor, data, shares):

@@ -96,6 +96,7 @@ def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
     ev_ratio = signals.get("equity_to_ev")
     rtype = (signals.get("research_type") or "").lower()
     bankish = rtype in {"bank", "financial", "fintech"}
+    navish = rtype in {"litigation_finance", "specialty_finance"}
 
     # equity/EV — словами, градиентом
     thin = moderate = weighty = False
@@ -137,8 +138,20 @@ def measure_fit(signals: dict) -> list[tuple[str, list[str], list[str]]]:
     if bankish: ddm_za.append(f"финансовый бизнес ({rtype}) — ROE/book/payout, не FCF")
     else: ddm_pr.append("не-финанс — дивидендно-остаточная мера не подходит")
 
+    nav_za, nav_pr = [], []
+    if navish:
+        nav_za.append(f"портфельный финансовый бизнес ({rtype}) — стоимость в book/NAV")
+    else:
+        nav_pr.append("нет признака портфеля активов, который маркируется по book/NAV")
+    if stable is False:
+        nav_za.append("FCF лумпи — поток искажает стоимость портфеля")
+    if stakes:
+        nav_za.append("есть доли/опционы — вынести отдельными строками поверх NAV")
+    nav_pr.append("book value требует проверки марки и поправок качества активов")
+
     return [("levered", lev_za, lev_pr), ("ev_revenue", evr_za, evr_pr),
-            ("sotp", sotp_za, sotp_pr), ("ddm_ri", ddm_za, ddm_pr)]
+            ("sotp", sotp_za, sotp_pr), ("ddm_ri", ddm_za, ddm_pr),
+            ("nav", nav_za, nav_pr)]
 
 
 def catalog() -> list[Prism]:

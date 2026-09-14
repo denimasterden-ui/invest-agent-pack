@@ -9,6 +9,7 @@ REQUIRED_NODES: dict[str, tuple[str, ...]] = {
     "levered": ("head_comps", "material_for_measure"),
     "ev_revenue": ("head_comps", "material_for_measure"),
     "sotp": ("head_comps", "material_for_measure", "part_comps"),
+    "nav": ("head_comps", "material_for_measure"),
 }
 
 

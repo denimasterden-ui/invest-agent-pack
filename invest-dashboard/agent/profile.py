@@ -25,7 +25,7 @@ SOTP = "sotp"
 DDM_RI = "ddm_ri"
 NAV = "nav"
 FFO = "ffo"
-IMPLEMENTED = (DDM_RI, LEVERED, EV_REVENUE, SOTP)
+IMPLEMENTED = (DDM_RI, LEVERED, EV_REVENUE, SOTP, NAV)
 
 # Levered FCF already reflects interest and debt service, so debt must not be
 # subtracted from its DCF a second time.  Above this ratio the resulting equity
@@ -139,6 +139,18 @@ _BY_KIND = {
         multiple_metric="sum_of_parts",
         data_gaps=("оценки непубличных долей",),
     ),
+    "nav": dict(
+        business_kind="портфель активов / specialty finance",
+        measure=NAV,
+        measure_reason="стоимость создаёт марка портфеля активов; ядро "
+                       "оценивается по book value и ROE, а события и доли "
+                       "идут отдельными строками",
+        drivers=("book value", "ROE", "стоимость капитала", "рост book value"),
+        caps=("peer-дисконт к justified P/BV", "поправки качества активов"),
+        comps=("OMF", "PRAA", "ECPG"),
+        multiple_metric="pbv_per_roe",
+        data_gaps=("скорректированный book value",),
+    ),
     "generic": dict(
         business_kind="обычный операционный бизнес",
         measure=LEVERED,
@@ -158,6 +170,8 @@ def _kind(ticker, research_type, has_stakes):
         return "holding"
     if research_type in ("fintech", "russia") and ticker in BANKS:
         return "bank"
+    if research_type in ("litigation_finance", "specialty_finance"):
+        return "nav"
     if ticker in NEOCLOUD:
         return "neocloud"
     if ticker in HARDWARE_AI:
