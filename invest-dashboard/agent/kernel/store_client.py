@@ -137,10 +137,83 @@ def _canonical_comps(comps):
     """Expand legacy ticker strings while retaining structured comp metadata."""
     if not isinstance(comps, (list, tuple)):
         return comps
-    return [
-        {"name": comp, "kind": "public"} if isinstance(comp, str) else comp
-        for comp in comps
-    ]
+    result = []
+    for comp in comps:
+        # Early holding profiles stored the core comps as a nested list.
+        if isinstance(comp, (list, tuple)):
+            result.extend(_canonical_comps(comp))
+        else:
+            result.append(
+                {"name": comp, "kind": "public"}
+                if isinstance(comp, str) else comp
+            )
+    return result
+
+
+def _symbol_facts(ticker):
+    """Return provider facts proving that an unregistered equity exists."""
+    try:
+        import yfinance as yf
+        facts = yf.Ticker(ticker).info or {}
+    except Exception as error:
+        raise ValueError(
+            f"{ticker}: факт-источник не смог проверить символ: {error}"
+        ) from error
+    if not isinstance(facts, dict):
+        return {}
+    quote_type = str(facts.get("quoteType") or "").upper()
+    returned_symbol = str(facts.get("symbol") or ticker).upper()
+    has_identity = any(facts.get(field) for field in (
+        "symbol", "shortName", "longName", "regularMarketPrice", "currentPrice"
+    ))
+    return facts if (has_identity and quote_type == "EQUITY"
+                     and returned_symbol == ticker.upper()) else {}
+
+
+def _entry_from_facts(ticker, facts):
+    return {
+        "key": ticker,
+        "yf": ticker,
+        "currency": facts.get("currency") or "USD",
+        "name": (facts.get("longName") or facts.get("shortName")
+                 or facts.get("name") or ticker),
+        "research_type": "default",
+    }
+
+
+def resolve_ticker(label):
+    """Resolve a curated or canonical ticker, seeding a verified new symbol."""
+    from agent.kernel import tickers
+
+    curated = tickers.resolve(label)
+    if curated is not None:
+        return curated
+    ticker = (label or "").strip().upper()
+    if not ticker:
+        raise ValueError("пустой символ нельзя проверить по факт-источнику")
+    if _mcp_url() is None:
+        raise ValueError(f"{ticker}: нет в tickers.py и канон не настроен")
+
+    canonical = _call_tool("get_profile", {"ticker": ticker})
+    if isinstance(canonical, dict) and canonical:
+        return _entry_from_facts(ticker, canonical)
+
+    facts = _symbol_facts(ticker)
+    if not facts:
+        raise ValueError(
+            f"{ticker}: факт-источник не подтвердил живой биржевой символ"
+        )
+    from agent import profile
+    built = profile._build_registry(
+        ticker, research_type="default", has_stakes=False, replay_local=False
+    )
+    eff = built.effective
+    _call_tool("create_profile", {
+        "ticker": ticker, "measure": built.measure,
+        "drivers": list(eff.drivers), "caps": list(eff.caps),
+        "comps": list(eff.comps), "data_gaps": list(eff.data_gaps),
+    })
+    return _entry_from_facts(ticker, facts)
 
 
 def record_baseline(ticker, measure, corridor, assumptions, status, run_at=None):
@@ -221,11 +294,24 @@ def get_profile(ticker):
         canonical.setdefault("segments", [])
         canonical.setdefault("scope", {})
         return canonical
-    # Тикер есть в реестре, но не в каноне → строим из реестра и СЕЕМ в канон
-    # (SPC-021: /run создаёт тикер, если не нашёл — становится общим). Мера —
-    # гипотеза, решает призм-дилиберация. Идемпотентно; сбой сева не критичен.
+    # Канон-промах → строим seed и СЕЕМ в канон (SPC-021/022). Для курированного
+    # тикера берём метаданные реестра; прочие сначала подтверждает факт-источник.
+    # Мера — гипотеза, решает призм-дилиберация. create_profile идемпотентен.
     from agent import profile
-    built = profile._build_registry(ticker, replay_local=False)
+    from agent.kernel import tickers
+    entry = tickers.TICKERS_BY_KEY.get(ticker)
+    if entry is None:
+        facts = _symbol_facts(ticker)
+        if not facts:
+            raise ValueError(
+                f"{ticker}: факт-источник не подтвердил живой биржевой символ"
+            )
+        built = profile._build_registry(
+            ticker, research_type="default", has_stakes=False,
+            replay_local=False,
+        )
+    else:
+        built = profile._build_registry(ticker, replay_local=False)
     try:
         eff = built.effective
         _call_tool("create_profile", {
@@ -234,7 +320,8 @@ def get_profile(ticker):
             "comps": list(eff.comps), "data_gaps": list(eff.data_gaps),
         })
     except Exception:
-        pass
+        if entry is None:
+            raise
     return built
 
 

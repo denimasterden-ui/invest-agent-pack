@@ -250,6 +250,9 @@ def build(ticker, research_type=None, has_stakes=None):
     canonical = store_client.get_profile(ticker)
     if isinstance(canonical, Profile):
         return canonical
+    if ticker not in tickers.TICKERS_BY_KEY:
+        research_type = research_type or "default"
+        has_stakes = False if has_stakes is None else has_stakes
     return _build_registry(
         ticker, research_type, has_stakes,
         overrides=canonical, replay_local=False,

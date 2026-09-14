@@ -48,6 +48,11 @@ class CmdError(Exception):
 
 def _resolve(label):
     entry = tickers.resolve(label)
+    if entry is None and store_client.configured():
+        try:
+            entry = store_client.resolve_ticker(label)
+        except ValueError as error:
+            raise CmdError(str(error)) from error
     if entry is None:
         raise CmdError(f"{label}: нет в tickers.py — про эту бумагу слой "
                        f"ничего не знает")
@@ -392,9 +397,10 @@ def cmd_show(args):
 
     prof = store_client.get_profile(ticker)
     if prof:
+        canonical_comps = store_client._canonical_comps(prof.get("comps"))
         comps = ", ".join(
             comp.get("name", "?") if isinstance(comp, dict) else str(comp)
-            for comp in (prof.get("comps") or [])
+            for comp in (canonical_comps or [])
         ) or "—"
         gaps = ", ".join(prof.get("data_gaps") or []) or "—"
         print(f"  профиль     мера {prof.get('measure','?')} · v{prof.get('version','?')}"
