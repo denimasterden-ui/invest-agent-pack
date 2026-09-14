@@ -170,6 +170,26 @@ def _symbol_facts(ticker):
                      and returned_symbol == ticker.upper()) else {}
 
 
+def symbol_facts(ticker):
+    """Confirm a fork symbol and return any provider facts available for it.
+
+    Registry entries are already curated exchange instruments.  Symbols outside
+    that registry must pass the single provider check in ``_symbol_facts``;
+    callers must not duplicate its quote-type and identity rules.
+    """
+    from agent.kernel import tickers
+
+    symbol = (ticker or "").strip().upper()
+    if tickers.resolve(symbol) is not None:
+        return {}
+    facts = _symbol_facts(symbol)
+    if not facts:
+        raise ValueError(
+            f"{symbol}: факт-источник не подтвердил живой биржевой символ"
+        )
+    return facts
+
+
 def _entry_from_facts(ticker, facts):
     return {
         "key": ticker,

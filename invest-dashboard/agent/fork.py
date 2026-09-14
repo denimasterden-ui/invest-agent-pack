@@ -225,6 +225,7 @@ class Basis:
     assumptions: dict | None = None   # объявленные предпосылки меры, если она на них считается
     dps: float | None = None          # дивиденд вперёд УЖЕ в валюте котировки: его перевёл слой 1
     fx: float = 1.0             # отчётность → котировка, тем же курсом, что слой 1
+    historical_fcf_margins: tuple = ()  # фактический диапазон для терминала
 
     @property
     def has_flow(self):
@@ -262,7 +263,7 @@ class Result:
 
 # ── базовая линия как основа форка ───────────────────────────────────────────
 
-def basis(result, price=None, price_currency=None):
+def basis(result, price=None, price_currency=None, historical_fcf_margins=None):
     """Собрать то, что форк наследует, из базовой линии (публичный вход слоя 1).
 
     Слой мер отдаёт свои объявленные предпосылки как словарь, слой банка —
@@ -276,6 +277,7 @@ def basis(result, price=None, price_currency=None):
                          f"форк не на чем ветвить")
     if result.corridor is None:
         raise ValueError(f"{result.ticker}: у базовой линии нет коридора")
+    symbol_facts = store_client.symbol_facts(result.ticker)
     quoted = getattr(result, "price", None) or price
     if not quoted:
         raise ValueError(f"{result.ticker}: базовая линия цены не несёт — "
@@ -292,7 +294,22 @@ def basis(result, price=None, price_currency=None):
                  price_currency=currency, corridor=result.corridor,
                  assumptions=assumptions,
                  dps=getattr(detail, "dps", None) if assumptions is None else None,
-                 fx=getattr(detail, "fx", None) or 1.0)
+                 fx=getattr(detail, "fx", None) or 1.0,
+                 historical_fcf_margins=(
+                     tuple(historical_fcf_margins)
+                     if historical_fcf_margins is not None
+                     else _historical_fcf_margins(symbol_facts)))
+
+
+def _historical_fcf_margins(facts):
+    """Read the normalized historical margin series supplied by fact sources."""
+    if not isinstance(facts, dict):
+        return ()
+    values = (facts.get("historicalFcfMargins")
+              or facts.get("historical_fcf_margins") or ())
+    if not isinstance(values, (list, tuple)):
+        return ()
+    return tuple(value for value in values if _number(value))
 
 
 # ── ответ модели → форки ─────────────────────────────────────────────────────
@@ -642,15 +659,19 @@ def evaluate(base, fork, peer_band=None, *, run_at=None):
                             channel=fork.channel, refusals=errors,
                             peer_band=peer_band)
         else:
+            unsupported_terminal = _unsupported_terminal_margin(base, fork)
+            bettable = is_bettable(fork, base)
             result = Result(
                 fork=fork, ticker=base.ticker, measure=base.measure,
                 channel=fork.channel, corridor=corridor,
-                unanchored=tuple(unanchored(fork)),
+                unanchored=tuple(unanchored(fork, base)),
                 estimated=tuple(estimated_band(fork)),
                 derived=tuple(derived(fork)),
                 warnings=tuple(check_direction(fork, base.corridor, corridor)),
-                bettable=is_bettable(fork),
-                expected=expected_return(base.price, corridor, fork.horizon_months),
+                bettable=bettable,
+                expected=(None if unsupported_terminal else
+                          expected_return(base.price, corridor,
+                                          fork.horizon_months)),
                 peer_band=peer_band)
     status = ("refused" if result.is_refusal() else
               "calculated" if result.bettable else "not_bettable")
@@ -743,10 +764,35 @@ def _quote(values, base):
 
 # ── якорь: адресное требование ───────────────────────────────────────────────
 
-def unanchored(fork):
+def unanchored(fork, base=None):
     """Переопределения на одном суждении — форк допустим, но это видно."""
-    return [name for name, ov in fork.overrides.items()
-            if ov.anchor_class == ANALYST_JUDGEMENT]
+    result = [name for name, ov in fork.overrides.items()
+              if ov.anchor_class == ANALYST_JUDGEMENT]
+    if (_unsupported_terminal_margin(base, fork)
+            and TERMINAL_FCF_MARGIN not in result):
+        result.append(TERMINAL_FCF_MARGIN)
+    return result
+
+
+def _unsupported_terminal_margin(base, fork):
+    """Whether a claimed historical terminal margin lacks historical support."""
+    override = fork.overrides.get(TERMINAL_FCF_MARGIN)
+    if override is None:
+        return False
+    if override.anchor_class == ANALYST_JUDGEMENT:
+        return True
+    if override.anchor_class != OWN_HISTORY or override.confirms != NUMBER:
+        return False
+    if base is None:
+        return False
+    history = getattr(base, "historical_fcf_margins", ())
+    # Нет ряда — судить не о чем. Отсутствие истории НЕ улика: курированные
+    # тикеры провайдерских фактов не получают вовсе (symbol_facts коротко
+    # замыкается на реестре), и трактовка «нет ряда → не подпёрто» объявляла
+    # неподпёртой любую терминальную маржу по всем знакомым бумагам.
+    if not history or not _number(override.value):
+        return False
+    return override.value < min(history) or override.value > max(history)
 
 
 def derived(fork):
@@ -777,7 +823,7 @@ def estimated_band(fork):
     return [name for name in unanchored(fork) if name in BAND_FIELDS]
 
 
-def is_bettable(fork):
+def is_bettable(fork, base=None):
     """Может ли форк стать основанием инвест-идеи.
 
     Требование к якорю адресное: величина, которую двигает тезис, обязана быть
@@ -788,7 +834,8 @@ def is_bettable(fork):
     """
     carried = [ov for name, ov in fork.overrides.items()
                if name in DRIVING_FIELDS]
-    return bool(carried) and all(has_fact_anchor(ov) for ov in carried)
+    return (bool(carried) and all(has_fact_anchor(ov) for ov in carried)
+            and not _unsupported_terminal_margin(base, fork))
 
 
 # ── направление, риск и доля оплаченного ─────────────────────────────────────
