@@ -258,12 +258,17 @@ def resolve_ticker(label):
         ticker, research_type="default", has_stakes=False, replay_local=False
     )
     eff = built.effective
+    entry = _entry_from_facts(ticker, facts)
+    # Имя кладём в канон вместе с профилем: иначе бумага вне локального реестра
+    # на следующем же прогоне печатается собственным тикером («CRWV — CRWV»),
+    # потому что резолв идёт уже через канон, а не через факт-источник.
     _call_tool("create_profile", {
         "ticker": ticker, "measure": built.measure,
         "drivers": list(eff.drivers), "caps": list(eff.caps),
         "comps": list(eff.comps), "data_gaps": list(eff.data_gaps),
+        "name": entry["name"],
     })
-    return _entry_from_facts(ticker, facts)
+    return entry
 
 
 def record_baseline(ticker, measure, corridor, assumptions, status, run_at=None):
