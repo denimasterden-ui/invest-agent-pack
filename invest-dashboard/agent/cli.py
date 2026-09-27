@@ -39,7 +39,7 @@ if str(ROOT) not in sys.path:
 
 from agent.kernel import tickers  # noqa: E402
 from agent.kernel import store_client  # noqa: E402
-from agent import baseline, coherence, explain, fork, freshness, idea, ingest, measure_contract, peers, prisms, profile, profile_store, recheck, rules, scope  # noqa: E402
+from agent import aict, baseline, coherence, explain, fork, freshness, idea, ingest, iv15 as iv15_mod, measure_contract, owners_earnings, peers, prisms, profile, profile_store, recheck, rules, scope  # noqa: E402
 
 
 class CmdError(Exception):
@@ -385,6 +385,182 @@ def _print_roster():
         print(f"\n  + {seed_only} только профиль (seed, без прогонов): {names}")
     print("\n  провалиться внутрь: cli show ТИКЕР")
     return 0
+
+
+
+def _growth_path(spec):
+    """«0.10x5,0.07x5,0.04x5» → 15 годовых темпов.
+
+    Стадии, а не пятнадцать чисел руками: горизонт IV15 фиксирован, и ошибка
+    в длине пути — самая частая при вводе.
+    """
+    path = []
+    for stage in spec.split(","):
+        stage = stage.strip()
+        rate, _, count = stage.partition("x")
+        path.extend([float(rate)] * int(count or 1))
+    if len(path) != iv15_mod.HORIZON:
+        raise SystemExit(f"растущий путь вышел длиной {len(path)} лет, "
+                         f"нужно {iv15_mod.HORIZON}: {spec}")
+    return path
+
+
+def cmd_iv15(args):
+    """IV15 — цена 15% годовых на 15 лет, и множитель P/IV15 к ней."""
+    entry = _resolve(args.ticker)
+    ticker = entry["key"]
+
+    if args.oe is None and args.net_income is None:
+        raise SystemExit("нужен --oe (прибыль владельца) либо --net-income")
+    delta_e = args.delta_e
+    from_pool = delta_e is None
+    if from_pool:
+        delta_e = owners_earnings.POOL_DELTA_E
+
+    oe = args.oe if args.oe is not None else args.net_income * delta_e
+    multiple = (args.terminal_multiple if args.terminal_multiple is not None
+                else iv15_mod.terminal_multiple(args.r_terminal,
+                                                args.terminal_growth))
+    try:
+        result = iv15_mod.calculate(
+            oe, _growth_path(args.growth), args.terminal_growth, multiple,
+            args.shares, args.net_cash, args.confidence_ddm)
+    except ValueError as exc:
+        print(f"{ticker} — отказ: {exc}")
+        return 1
+
+    print(f"{ticker} — {entry['name']} — IV15")
+    print(f"  прибыль владельца   {oe:,.0f}"
+          + (f"  (= прибыль {args.net_income:,.0f} × ΔE {delta_e:.3f})"
+             if args.oe is None else ""))
+    if from_pool:
+        print(f"  ⚠ ΔE пулом NDX-97 ({owners_earnings.POOL_DELTA_E:.3f}), "
+              "не фактом — 10-K по бумаге ещё не прочитаны")
+    print(f"  терминал            мультипликатор {multiple:.1f}× "
+          + ("(введён)" if args.terminal_multiple is not None
+             else f"(выведен из r={args.r_terminal:.1%}, g={args.terminal_growth:.1%})"))
+    print(f"  IV15                {result.per_share:,.2f} за акцию")
+    print(f"    конец DDM         {result.ddm:,.2f}   (вес {args.confidence_ddm:.0%})")
+    print(f"    конец мультипл.   {result.multiple:,.2f}   (вес {1-args.confidence_ddm:.0%})")
+    for warning in result.warnings:
+        print(f"  ⚠ {warning}")
+
+    if not result.investable():
+        print("  IV15 отрицателен — цены, дающей 15% годовых, не существует; "
+              "бумага не инвестируема и в ранжирование не идёт")
+        return 0
+
+    if args.price:
+        ratio = args.price / result.per_share
+        print(f"  P/IV15              {ratio:.2f}×  (цена {args.price:,.2f})")
+        if args.tier:
+            scored = iv15_mod.composite(delta_e, args.tier, ratio, args.roic,
+                                        delta_e_is_pool=from_pool)
+            print(f"  composite           {scored['score']}  "
+                  "(веса наши, не Бьюри — knowledge/iv15_standard.md, часть 5)")
+            for name, value in scored["buckets"].items():
+                print(f"    {name:<13} {value:>6.1f}")
+            for note in scored["notes"]:
+                print(f"    ⚠ {note}")
+    return 0
+
+
+def cmd_aict(args):
+    """Рубрика тира: печатает взвешивание, выбор за человеком."""
+    entry = _resolve(args.ticker)
+    traits = _load_json_object(args.traits, "признаков") if args.traits else {}
+    unknown = set(traits) - set(aict.TRAITS)
+    if unknown:
+        raise SystemExit(f"незнакомые признаки: {', '.join(sorted(unknown))}. "
+                         f"Словарь: {', '.join(aict.TRAITS)}")
+
+    print(f"{entry['key']} — {entry['name']} — рубрика AICT")
+    for note in aict.notes(traits):
+        print(f"  · {note}")
+    guess = aict.hypothesis(traits)
+    head = (f"роутер предложил «{guess}» — это ГИПОТЕЗА, проверь"
+            if guess else
+            "гипотезы нет: лидеры рубрики равны — объяви признак, который их разводит")
+    print(f"  Разбор тиров ({head}):")
+    for tier, za, protiv in aict.fit(traits):
+        print(f"    {tier}")
+        print(f"      ЗА:     {'; '.join(za) or '—'}")
+        print(f"      ПРОТИВ: {'; '.join(protiv) or '—'}")
+    return 0
+
+
+
+def cmd_list(args):
+    """Ранжированный список канона: тир, P/IV15 и composite, дорогие внизу.
+
+    Ранг — инструмент ОТНОСИТЕЛЬНОЙ оценки внутри сопоставимой группы. Бумаги
+    из разных отраслей сравнивать этим числом нельзя: корзины не независимы, а
+    их состав по отраслям разный (стандарт, часть 5). Отсюда --tier-фильтр.
+    """
+    rows = store_client.list_tickers()
+    if not rows:
+        print("Роестр пуст — канон недоступен или без профилей")
+        return 0
+
+    # Роестр уже несёт тир, IV15 и ΔE — поштучный get_profile на каждую
+    # бумагу превращал список в полсотни обращений к канону.
+    candidates = [r for r in rows if r.get("aict_tier") and r.get("iv15")]
+    prices = _spot_prices([r["ticker"] for r in candidates])
+
+    ranked, pending = [], []
+    for row in rows:
+        tier, iv = row.get("aict_tier"), row.get("iv15")
+        price = prices.get(row["ticker"])
+        if not (tier and iv and price):
+            missing = [name for name, value in
+                       (("тир", tier), ("IV15", iv), ("цена", price))
+                       if not value]
+            pending.append((row["ticker"], missing))
+            continue
+        delta_e = row.get("delta_e")
+        from_pool = delta_e is None
+        ratio = None if iv < 0 else price / iv
+        scored = iv15_mod.composite(
+            delta_e or owners_earnings.POOL_DELTA_E, tier, ratio,
+            row.get("roic"), delta_e_is_pool=from_pool)
+        ranked.append((scored["score"], row["ticker"],
+                       row.get("name") or row["ticker"], tier, ratio, from_pool))
+
+    if args.tier:
+        ranked = [r for r in ranked if r[3].lower() == args.tier.lower()]
+    ranked.sort(reverse=True)
+
+    print(f"Ранжирование канона — {len(ranked)} бумаг с полным набором"
+          + (f", тир {args.tier}" if args.tier else ""))
+    print(f"  {'#':<3} {'тикер':<7} {'тир':<9} {'P/IV15':>8} {'score':>7}  имя")
+    for place, (score, ticker, name, tier, ratio, pool) in enumerate(ranked, 1):
+        shown = "отриц." if ratio is None else f"{ratio:.2f}×"
+        print(f"  {place:<3} {ticker:<7} {tier:<9} {shown:>8} {score:>7}"
+              f"{'*' if pool else ' '} {name}")
+    if any(r[5] for r in ranked):
+        print("  * ΔE пулом, не фактом — ранг не сравнивать с посчитанными наравне")
+    if pending:
+        print(f"\n  Не ранжированы ({len(pending)}) — чего не хватает:")
+        for ticker, missing in pending:
+            print(f"    {ticker:<7} {', '.join(missing)}")
+    return 0
+
+
+def _spot_prices(tickers):
+    """Цены одним запросом: полсотни поштучных походов в сеть — не список."""
+    if not tickers:
+        return {}
+    try:
+        import yfinance
+        quotes = yfinance.Tickers(" ".join(tickers))
+        out = {}
+        for ticker in tickers:
+            value = quotes.tickers[ticker].fast_info.get("lastPrice")
+            if value:
+                out[ticker] = float(value)
+        return out
+    except Exception:
+        return {}
 
 
 def cmd_show(args):
@@ -1488,6 +1664,45 @@ def build_parser():
                    help="детализация + директива аналитику написать инвест-вывод "
                         "для человека (три оси, затем /humanizer)")
     p.set_defaults(fn=cmd_show)
+
+
+
+    p = sub.add_parser("list", help="ранжированный список канона по IV15 и тиру")
+    p.add_argument("--tier", help="показать только один тир AICT")
+    p.set_defaults(fn=cmd_list)
+
+    p = sub.add_parser("iv15", help="цена, дающая 15%% годовых на 15 лет")
+    p.add_argument("ticker")
+    p.add_argument("--shares", type=float, required=True)
+    p.add_argument("--growth", required=True,
+                   help="стадии роста прибыли владельца: «0.10x5,0.07x5,0.04x5» "
+                        "— в сумме ровно 15 лет")
+    p.add_argument("--terminal-growth", type=float, required=True)
+    p.add_argument("--oe", type=float,
+                   help="прибыль владельца базового года; либо --net-income")
+    p.add_argument("--net-income", type=float,
+                   help="прибыль по GAAP — будет умножена на ΔE")
+    p.add_argument("--delta-e", type=float,
+                   help=f"доля прибыли владельцу; без неё берётся пул "
+                        f"{owners_earnings.POOL_DELTA_E:.3f} с пометкой")
+    p.add_argument("--r-terminal", type=float, default=0.10,
+                   help="требуемая доходность на ЗРЕЛОМ бизнесе, из неё "
+                        "выводится мультипликатор (по умолчанию 10%%)")
+    p.add_argument("--terminal-multiple", type=float,
+                   help="назвать мультипликатор напрямую вместо вывода из r")
+    p.add_argument("--net-cash", type=float, default=0.0,
+                   help="чистый кэш; у платёжных — уже за вычетом float")
+    p.add_argument("--confidence-ddm", type=float, default=0.5,
+                   help="вес конца DDM в гибриде, 0..1 (по умолчанию поровну)")
+    p.add_argument("--price", type=float, help="цена для множителя P/IV15")
+    p.add_argument("--tier", help="тир AICT — включает composite")
+    p.add_argument("--roic", type=float)
+    p.set_defaults(fn=cmd_iv15)
+
+    p = sub.add_parser("aict", help="рубрика тира конкурентной угрозы ИИ")
+    p.add_argument("ticker")
+    p.add_argument("--traits", help="JSON объявленных признаков")
+    p.set_defaults(fn=cmd_aict)
 
     p = sub.add_parser("add-material", help="внести разбор материала (синтез) "
                                             "в канон — шаг «свежий отчёт»")
