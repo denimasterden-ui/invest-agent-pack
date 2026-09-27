@@ -23,7 +23,7 @@ def main():
     context = open(args.context, encoding="utf-8").read()
     method = os.path.join(SKILL_DIR, "method_burry.md")
     if not os.path.exists(method):
-        raise SystemExit("Нет method_burry.md: метод оценки не входит в пак — положи свой рядом со скриптом.")
+        raise SystemExit("Нет method_burry.md рядом со скриптом — он входит в пак, восстанови из репозитория (git checkout).")
     system_prompt = open(method, encoding="utf-8").read()
     task = open(os.path.join(SKILL_DIR, "task_preipo.md"), encoding="utf-8").read()
 
