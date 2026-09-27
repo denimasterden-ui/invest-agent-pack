@@ -1,21 +1,16 @@
 #!/usr/bin/env python3
 """preipo-valuation — оценка частной (pre-IPO) компании через наш Burry-аналитик.
 
-Тот же системный промпт (system_burry.md), что генерит Bear/Base/Bull для портфеля,
-адаптированный под pre-IPO: выход в терминах EV на выходе + IRR от входа, а не цены акции.
+Метод Burry-аналитика (method_burry.md) + задача pre-IPO: выход в терминах EV на выходе + IRR от входа, а не цены акции.
 Вход — файл с фактами/тезисом компании (включая условия сделки).
 
 Использование:
-  /usr/bin/python3 preipo_valuation.py <context.md> [--name NAME] [--max-tokens N]
+  python3 preipo_valuation.py <context.md> [--name NAME]
 """
-import sys, os, argparse, warnings
+import os, argparse, warnings
 warnings.filterwarnings("ignore")
 
 SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
-DASHBOARD = os.path.normpath(os.path.join(SKILL_DIR, "..", "..", "..", "invest-dashboard"))
-sys.path.insert(0, DASHBOARD)
-
-from agent.kernel.research import _load_prompt               # noqa: E402
 
 
 def main():
@@ -26,7 +21,10 @@ def main():
 
     name = args.name or os.path.splitext(os.path.basename(args.context))[0]
     context = open(args.context, encoding="utf-8").read()
-    system_prompt = _load_prompt("system_burry.md")
+    method = os.path.join(SKILL_DIR, "method_burry.md")
+    if not os.path.exists(method):
+        raise SystemExit("Нет method_burry.md: метод оценки не входит в пак — положи свой рядом со скриптом.")
+    system_prompt = open(method, encoding="utf-8").read()
     task = open(os.path.join(SKILL_DIR, "task_preipo.md"), encoding="utf-8").read()
 
     # v2: аналитик — сам Claude Code (без OpenRouter). Скрипт печатает метод +
@@ -36,7 +34,7 @@ def main():
     print(f"{bar}\nBURRY PRE-IPO ОЦЕНКА — {name}\n"
           "Аналитик (Claude Code): по методу ниже дай Bear/Base/Bull EV на выходе,\n"
           "IRR от входа и вердикт margin of safety.\n"
-          f"{bar}\n=== МЕТОД (system_burry) ===\n{system_prompt}\n\n"
+          f"{bar}\n=== МЕТОД (method_burry) ===\n{system_prompt}\n\n"
           f"=== ЗАДАЧА (task_preipo) ===\n{task}\n\n"
           f"=== КОНТЕКСТ КОМПАНИИ ({name}) ===\n{context}")
 
