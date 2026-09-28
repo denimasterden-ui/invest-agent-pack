@@ -36,7 +36,8 @@ NET_DEBT_TO_FCF_WARNING_THRESHOLD = 8.0
 # Поля, которые событие может перекрыть, читаются из журнала (OVERRIDABLE).
 # У холдинга обёртка отвечает за меру (сумма частей), природа бизнеса — в core.
 WRAPPER_FIELDS = ("business_kind", "measure", "measure_reason",
-                  "capital_signals", "price_context", "segments", "scope")
+                  "capital_signals", "price_context", "segments", "scope",
+                  "aict_tier", "delta_e", "iv15", "roic")
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,10 @@ class Profile:
     price_context: dict = field(default_factory=dict)    # H: ranges, move, volume, report reaction
     segments: tuple = ()            # material business segments
     scope: dict = field(default_factory=dict)  # confirmed valuation-measure choice
+    aict_tier: str = None       # тир угрозы ИИ (knowledge/classifiers/aict_tiers.md)
+    delta_e: float = None       # доля прибыли владельцу по 10-K; None — пул
+    iv15: float = None          # цена 15% годовых на 15 лет, за акцию
+    roic: float = None
     core: object = None         # холдинг: профиль основного бизнеса внутри
 
     @property

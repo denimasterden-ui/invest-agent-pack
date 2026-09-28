@@ -37,8 +37,10 @@ from pathlib import Path
 # о бизнесе, а способ его собрать: они выводятся, а не запоминаются.
 OVERRIDABLE = ("business_kind", "measure", "measure_reason", "drivers",
                "caps", "comps", "multiple_metric", "data_gaps", "driver_facts",
-               "capital_signals", "price_context", "segments", "scope")
+               "capital_signals", "price_context", "segments", "scope",
+               "aict_tier", "delta_e", "iv15", "roic")
 LIST_FIELDS = ("drivers", "caps", "comps", "data_gaps")
+NUMBER_FIELDS = ("delta_e", "iv15", "roic")
 DICT_FIELDS = ("driver_facts",)
 PROFILE_DICT_FIELDS = ("capital_signals", "price_context")
 
@@ -50,7 +52,8 @@ AUTHORS = ("model", "research", "material", "human")
 
 DB_PATH = Path(__file__).parent / "agent.db"
 MEASURE_FIELD = "measure"
-CONFIRM_FIELDS = (MEASURE_FIELD, "scope")
+# Тир AICT задаёт допущения роста и терминала — меняет результат не слабее меры.
+CONFIRM_FIELDS = (MEASURE_FIELD, "scope", "aict_tier")
 EVENTS = "profile_events"
 
 
@@ -253,6 +256,14 @@ def _validate(field, new_value, reason, author):
         if not isinstance(new_value, dict):
             raise ValueError(f"{field}: ждёт словарь, "
                              f"пришло {type(new_value).__name__}")
+    elif field in NUMBER_FIELDS:
+        if not _is_number(new_value):
+            raise ValueError(f"{field}: ждёт число, пришло {new_value!r}")
+    elif field == "aict_tier":
+        from .aict import TIERS
+        if new_value not in TIERS:
+            raise ValueError(f"aict_tier: ждёт один из {', '.join(TIERS)}, "
+                             f"пришло {new_value!r}")
     elif not isinstance(new_value, str) or not new_value.strip():
         raise ValueError(f"{field}: ждёт непустую строку, пришло {new_value!r}")
 

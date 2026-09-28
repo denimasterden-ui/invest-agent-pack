@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from agent import aict, iv15, owners_earnings  # noqa: E402
+from agent import aict, iv15, owners_earnings, profile, profile_store  # noqa: E402
 from agent.measures import _levered_vps  # noqa: E402
 
 
@@ -116,6 +116,19 @@ def main():
     check("usage-based не засчитывается как защита от seat-риска",
           any("смазывает" in n for n in aict.notes(
               dict(solid, usage_priced=True, seat_exposure_large=True))))
+
+    # --- Профиль: хранение тира и чисел ------------------------------------
+    check("тир вне словаря AICT профилем не принимается",
+          _refuses(lambda: profile_store._validate(
+              "aict_tier", "granite", "причина", "human")))
+    check("ΔE строкой не принимается — только число",
+          _refuses(lambda: profile_store._validate(
+              "delta_e", "0.83", "причина", "human")))
+    profile_store._validate("iv15", 91.38, "репер PAYC", "human")
+    check("смена тира требует подтверждения человеком, как смена меры",
+          "aict_tier" in profile_store.CONFIRM_FIELDS)
+    check("тир — поле листинга целиком, у холдинга живёт на обёртке",
+          "aict_tier" in profile.WRAPPER_FIELDS)
 
     print("\nIV15 eval: OK")
     return 0
